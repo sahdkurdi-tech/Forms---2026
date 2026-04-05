@@ -1,5 +1,14 @@
 // js/backup.js
 
+// ئەو کۆلێکشنانەی کە دەتەوێت باکەپ بکرێن (جگە لە forms کە subcollectionی هەیە)
+// بۆ داهاتوو هەر پەڕە یان بەشێکی نوێت زیادکرد، تەنها ناوی کۆلێکشنەکەی لێرە زیاد بکە
+const standardCollections = [
+    "users",
+    "aid_fields",
+    "aid_categories",
+    "aid_cases"
+];
+
 // ==========================================
 // 1. بەشی هەڵگرتنی باکەپ (EXPORT)
 // ==========================================
@@ -13,25 +22,26 @@ async function createBackup() {
 
     try {
         let backupData = {
-            version: "2.0", // وەشانم گۆڕی
+            version: "3.0", // وەشانەکەمان بەرزکردەوە
             createdAt: new Date().toISOString(),
-            users: {},
-            forms: {}
+            forms: {} // فۆڕمەکان بە جیا دادەنێین بەهۆی subcollection
         };
 
         console.log("Starting backup process...");
 
-        // 1. هێنانی بەکارهێنەران
-        const usersSnap = await db.collection("users").get();
-        usersSnap.forEach(doc => {
-            backupData.users[doc.id] = doc.data();
-        });
-        console.log(`Users fetched: ${usersSnap.size}`);
+        // 1. هێنانی کۆلێکشنە ستانداردەکان بە شێوەی داینامیکی
+        await Promise.all(standardCollections.map(async (collectionName) => {
+            backupData[collectionName] = {};
+            const snap = await db.collection(collectionName).get();
+            snap.forEach(doc => {
+                backupData[collectionName][doc.id] = doc.data();
+            });
+            console.log(`${collectionName} fetched: ${snap.size}`);
+        }));
 
-        // 2. هێنانی فۆڕمەکان و وەڵامەکان
+        // 2. هێنانی فۆڕمەکان و وەڵامەکان (Submissions)
         const formsSnap = await db.collection("forms").get();
         
-        // بەکارهێنانی Promise.all بۆ خێرایی
         await Promise.all(formsSnap.docs.map(async (formDoc) => {
             const formData = formDoc.data();
             const formId = formDoc.id;
@@ -87,7 +97,7 @@ function downloadJSON(data, filename) {
 
 
 // ==========================================
-// 2. بەشی گێڕانەوەی باکەپ (IMPORT) - نوێکراوە
+// 2. بەشی گێڕانەوەی باکەپ (IMPORT)
 // ==========================================
 function triggerRestore() {
     document.getElementById('backupFileInput').click();
@@ -138,8 +148,6 @@ async function restoreProcess(data) {
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> چاوەڕوانبە...';
 
     // *** Batch Setup ***
-    // فایەربەیس ڕێگە دەدات تەنها 500 کردار لە یەک Batch ئەنجام بدەیت
-    // بۆیە ئێمە داتاکان دەکەین بە بەشی 450 دانەیی بۆ دڵنیایی
     const BATCH_SIZE = 450;
     let batches = [];
     let currentBatch = db.batch();
@@ -160,11 +168,13 @@ async function restoreProcess(data) {
     try {
         console.log("Starting restore logic...");
 
-        // 1. گێڕانەوەی Users
-        if (data.users) {
-            for (const [id, userData] of Object.entries(data.users)) {
-                const userRef = db.collection("users").doc(id);
-                addToBatch(userRef, userData);
+        // 1. گێڕانەوەی کۆلێکشنە ستانداردەکان بە شێوەی داینامیکی
+        for (const collectionName of standardCollections) {
+            if (data[collectionName]) {
+                for (const [id, docData] of Object.entries(data[collectionName])) {
+                    const docRef = db.collection(collectionName).doc(id);
+                    addToBatch(docRef, docData);
+                }
             }
         }
 
@@ -196,7 +206,6 @@ async function restoreProcess(data) {
         console.log(`Total batches to commit: ${batches.length}`);
 
         // جێبەجێکردنی هەموو Batchـەکان
-        // ناتوانین هەمووی پێکەوە بکەین، یەک لە دوای یەک دەیکەین
         for (let i = 0; i < batches.length; i++) {
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> خەریکە... (${i + 1}/${batches.length})`;
             await batches[i].commit();

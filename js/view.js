@@ -1,10 +1,5 @@
 // js/view.js
 
-// ******************************************************
-// IMAGEKIT CONFIGURATION
-const IMAGEKIT_PRIVATE_KEY = "private_1c11AFDWMP9vctTdwopQFDLCaBU=";
-// ******************************************************
-
 const urlParams = new URLSearchParams(window.location.search);
 const formId = urlParams.get('id');
 
@@ -14,8 +9,54 @@ const titleEl = document.getElementById('formTitleDisplay');
 const STORAGE_KEY = `autosave_data_${formId}`;
 
 // گوێگرتن لە هەر گۆڕانکارییەک (نووسین یان هەڵبژاردن)
+// --- فەنکشنی نوێ بۆ گۆڕینی ژمارەی کوردی و عەرەبی بە ئینگلیزی ---
+window.convertAllNumerals = function(input) {
+    if (!input || input.type === 'date' || input.type === 'checkbox' || input.type === 'radio' || input.type === 'file') return;
+
+    const numbers = {
+        '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+        '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
+        '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
+        '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9'
+    };
+    
+    let val = input.value;
+    if (!val) return;
+
+    let converted = val.replace(/[٠-٩۰-۹]/g, function(match) {
+        return numbers[match];
+    });
+    
+    if (input.getAttribute('inputmode') === 'numeric' || input.type === 'number') {
+        converted = converted.replace(/[^0-9.]/g, ''); 
+    }
+    
+    if (val !== converted) {
+        let start = input.selectionStart;
+        let end = input.selectionEnd;
+        input.value = converted;
+        try {
+            input.setSelectionRange(start, end);
+        } catch(e) {}
+    }
+};
+
+// --- چارەسەری کێشەی بلۆکبوونی کیبۆردی کوردی لە خانەی ژمارەکان ---
+document.addEventListener('focusin', function(e) {
+    if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'number') {
+        e.target.type = 'text'; // دەیگۆڕین بۆ تێکست بۆ ئەوەی ڕێگە بە ژمارەی کوردی بدات
+        e.target.setAttribute('inputmode', 'numeric'); // بۆ ئەوەی لە مۆبایل هەر کیبۆردی ژمارەکان بکرێتەوە
+    }
+});
+
+// گوێگرتن لە هەر گۆڕانکارییەک (نووسین یان هەڵبژاردن)
 if(formEl) {
-    formEl.addEventListener('input', handleAutoSave);
+    formEl.addEventListener('input', function(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            convertAllNumerals(e.target);
+        }
+        handleAutoSave(e); 
+    });
     formEl.addEventListener('change', handleAutoSave);
 }
 
@@ -25,11 +66,6 @@ let photosStore = {};
 let requiredFieldsRegistry = [];
 // کۆگای پەنجەمۆرەکان/واژۆکان
 let fingerprintPads = {};
-
-// گۆڕاو بۆ Cropper
-let cropper = null;
-let currentEditField = null;
-let currentFileQueue = [];
 
 // 1. بارکردنی فۆڕم و پشکنینی دۆخی چالاکبوون
 async function initView() {
@@ -61,7 +97,6 @@ async function initView() {
         else alert('لینکەکە هەڵەیە');
         return;
     }
-    createEditorModal();
 
     try {
         const doc = await db.collection("forms").doc(formId).get();
@@ -106,41 +141,6 @@ async function initView() {
     } catch (error) {
         console.error("Error:", error);
     }
-}
-
-// 2. دروستکردنی HTMLـی مۆداڵی دەستکاری (Crop Modal)
-function createEditorModal() {
-    if(document.getElementById('imageEditorModal')) return;
-
-    const modalHTML = `
-    <div class="modal fade" id="imageEditorModal" data-bs-backdrop="static" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-dark text-white">
-                    <h5 class="modal-title"><i class="fa-solid fa-crop-simple"></i> دەستکاری وێنە (سکانکردن)</h5>
-                    <button type="button" class="btn-close btn-close-white" onclick="cancelCrop()"></button>
-                </div>
-                <div class="modal-body p-0 bg-dark text-center" style="height: 500px; overflow: hidden;">
-                    <div style="height: 100%;">
-                        <img id="imageToCrop" src="" style="max-width: 100%; max-height: 100%; display: block;">
-                    </div>
-                </div>
-                <div class="modal-footer bg-dark justify-content-between">
-                    <div>
-                        <button type="button" class="btn btn-secondary" onclick="rotateImage(-90)" title="سووڕاندن"><i class="fa-solid fa-rotate-left"></i></button>
-                        <button type="button" class="btn btn-secondary" onclick="rotateImage(90)" title="سووڕاندن"><i class="fa-solid fa-rotate-right"></i></button>
-                    </div>
-                    <div>
-                        <button type="button" class="btn btn-light" onclick="cancelCrop()">لاچوون</button>
-                        <button type="button" class="btn btn-primary px-4" onclick="saveCrop()">
-                            <i class="fa-solid fa-check"></i> بڕین و پاشەکەوت
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>`;
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
 }
 
 // 3. دروستکردنی دیزاینی خانەکان
@@ -251,11 +251,11 @@ function renderFields(fields, parentElement) {
             }, 500);
         }
 
-        // ----------------------------------------------------
-        // 4. وێنە (Photo)
+// ----------------------------------------------------
+        // 4. وێنە (Photo) - ڕاستەوخۆ بەبێ سکانەر
         // ----------------------------------------------------
         else if (field.type === 'photo') {
-            photosStore[field.id] = []; // گۆڕدرا بۆ ئایدی
+            photosStore[field.id] = []; 
             const photoContainer = document.createElement('div');
             photoContainer.className = 'photo-uploader p-3 bg-light border rounded';
 
@@ -295,11 +295,32 @@ function renderFields(fields, parentElement) {
                 hiddenInput.click();
             };
 
+            // لێرەدا ڕاستەوخۆ وێنەکە دەخرێتە ناو فۆڕمەکەوە
             hiddenInput.onchange = (e) => {
                 if(e.target.files && e.target.files.length > 0) {
-                    currentFileQueue = Array.from(e.target.files);
-                    currentEditField = { id: field.id, label: field.label, previewContainer: previewContainer }; // ئایدی زیاد کرا
-                    processNextInQueue(); 
+                    Array.from(e.target.files).forEach(file => {
+                        photosStore[field.id].push(file);
+                        const currentIndex = photosStore[field.id].length - 1;
+                        
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            const imgDiv = document.createElement('div');
+                            imgDiv.className = 'position-relative shadow-sm rounded overflow-hidden animate-up';
+                            imgDiv.style.width = '100px';
+                            imgDiv.style.height = '100px';
+                            
+                            imgDiv.innerHTML = `
+                                <img src="${event.target.result}" style="width: 100%; height: 100%; object-fit: cover;">
+                                <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 p-0 d-flex justify-content-center align-items-center" 
+                                        style="width: 24px; height: 24px; border-radius: 0 0 0 5px;" 
+                                        onclick="removePhoto('${field.id}', ${currentIndex}, this)">
+                                    <i class="fa-solid fa-times"></i>
+                                </button>
+                            `;
+                            previewContainer.appendChild(imgDiv);
+                        };
+                        reader.readAsDataURL(file);
+                    });
                 }
                 hiddenInput.value = ''; 
             };
@@ -419,98 +440,17 @@ function renderFields(fields, parentElement) {
         parentElement.appendChild(fieldWrapper);
     });
 }
-// --- LOGIC FOR CROPPING AND EDITING ---
-
-function processNextInQueue() {
-    if (currentFileQueue.length === 0) return;
-
-    const file = currentFileQueue[0];
-    const reader = new FileReader();
-    
-    reader.onload = (e) => {
-        const modalEl = document.getElementById('imageEditorModal');
-        const imgEl = document.getElementById('imageToCrop');
-        
-        imgEl.src = e.target.result;
-        const modal = new bootstrap.Modal(modalEl);
-        modal.show();
-
-        modalEl.addEventListener('shown.bs.modal', () => {
-            if (cropper) cropper.destroy(); 
-            cropper = new Cropper(imgEl, {
-                viewMode: 1,
-                dragMode: 'move',
-                autoCropArea: 0.8, 
-                restore: false,
-                guides: true,
-                center: true,
-                highlight: false,
-                cropBoxMovable: true,
-                cropBoxResizable: true,
-                toggleDragModeOnDblclick: false,
-            });
-        }, { once: true });
-    };
-    reader.readAsDataURL(file);
-}
-
-window.rotateImage = function(degree) {
-    if(cropper) cropper.rotate(degree);
-}
-
-window.saveCrop = function() {
-    if (!cropper) return;
-
-    cropper.getCroppedCanvas().toBlob((blob) => {
-        const newFile = new File([blob], "cropped_image.jpg", { type: "image/jpeg" });
-        photosStore[currentEditField.id].push(newFile); // گۆڕدرا بۆ ئایدی
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const imgDiv = document.createElement('div');
-            imgDiv.className = 'position-relative shadow-sm rounded overflow-hidden animate-up';
-            imgDiv.style.width = '100px';
-            imgDiv.style.height = '100px';
-            
-            imgDiv.innerHTML = `
-                <img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover;">
-                <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 p-0 d-flex justify-content-center align-items-center" 
-                        style="width: 24px; height: 24px; border-radius: 0 0 0 5px;" 
-                        onclick="removePhoto('${currentEditField.id}', ${photosStore[currentEditField.id].length - 1}, this)">
-                    <i class="fa-solid fa-times"></i>
-                </button>
-            `; // گۆڕدرا بۆ ئایدی لە removePhoto
-            currentEditField.previewContainer.appendChild(imgDiv);
-        };
-        reader.readAsDataURL(newFile);
-        closeEditor();
-    }, 'image/jpeg', 0.8);
-}
-
-window.cancelCrop = function() {
-    closeEditor();
-}
-
-function closeEditor() {
-    const modalEl = document.getElementById('imageEditorModal');
-    const modal = bootstrap.Modal.getInstance(modalEl);
-    if(modal) modal.hide();
-    
-    if(cropper) {
-        cropper.destroy();
-        cropper = null;
-    }
-
-    currentFileQueue.shift();
-    if (currentFileQueue.length > 0) {
-        setTimeout(() => processNextInQueue(), 500); 
-    }
-}
 
 window.removePhoto = function(fieldId, index, btn) { // Parameter گۆڕدرا
     photosStore[fieldId][index] = null;
     btn.parentElement.remove();
 }
+
+window.clearFingerprint = function(id) {
+    if (fingerprintPads[id]) {
+        fingerprintPads[id].clear();
+    }
+};
 
 // --- STANDARD FUNCTIONS ---
 
@@ -548,54 +488,34 @@ formEl.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const submitBtn = document.getElementById('submitBtn');
-    const originalBtnText = submitBtn.innerHTML;
-
+    
     // --- Validation Logic START ---
     let isValid = true;
     for (const reqField of requiredFieldsRegistry) {
         if (reqField.type === 'photo') {
-            const hasPhotos = photosStore[reqField.id] && photosStore[reqField.id].some(p => p !== null); // گۆڕدرا بۆ ئایدی
+            const hasPhotos = photosStore[reqField.id] && photosStore[reqField.id].some(p => p !== null); 
             if (!hasPhotos) {
                 isValid = false;
                 if(typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'تکایە وێنە دابنێ',
-                        text: `خانەی "${reqField.label}" پێویستی بە وێنەیە.`,
-                        confirmButtonText: 'باشە',
-                        confirmButtonColor: '#6366f1'
-                    });
+                    Swal.fire({ icon: 'warning', title: 'تکایە وێنە دابنێ', text: `خانەی "${reqField.label}" پێویستی بە وێنەیە.`, confirmButtonText: 'باشە', confirmButtonColor: '#6366f1' });
                 } else alert(`وێنە بۆ "${reqField.label}" پێویستە`);
                 return; 
             }
         } else if (reqField.type === 'select_many') {
-            const checked = document.querySelectorAll(`input[name="${reqField.id}[]"]:checked`); // گۆڕدرا بۆ ئایدی
+            const checked = document.querySelectorAll(`input[name="${reqField.id}[]"]:checked`); 
             if (checked.length === 0) {
                 isValid = false;
                 if(typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'هەڵبژاردن',
-                        text: `تکایە لانیکەم یەک دانە بۆ "${reqField.label}" هەڵبژێرە.`,
-                        confirmButtonText: 'باشە',
-                        confirmButtonColor: '#6366f1'
-                    });
+                    Swal.fire({ icon: 'warning', title: 'هەڵبژاردن', text: `تکایە لانیکەم یەک دانە بۆ "${reqField.label}" هەڵبژێرە.`, confirmButtonText: 'باشە', confirmButtonColor: '#6366f1' });
                 } else alert(`هەڵبژاردن بۆ "${reqField.label}" پێویستە`);
                 return;
             }
-        } 
-        else if (reqField.type === 'fingerprint') { 
+        } else if (reqField.type === 'fingerprint') { 
             const pad = fingerprintPads[reqField.id];
             if (!pad || pad.isEmpty()) {
                 isValid = false;
                 if(typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'واژۆ',
-                        text: `تکایە واژۆ لە خانەی "${reqField.label}" بکە.`,
-                        confirmButtonText: 'باشە',
-                        confirmButtonColor: '#6366f1'
-                    });
+                    Swal.fire({ icon: 'warning', title: 'واژۆ', text: `تکایە واژۆ لە خانەی "${reqField.label}" بکە.`, confirmButtonText: 'باشە', confirmButtonColor: '#6366f1' });
                 } else alert(`واژۆ بۆ "${reqField.label}" پێویستە`);
                 return;
             }
@@ -603,8 +523,40 @@ formEl.addEventListener('submit', async (e) => {
     }
     // --- Validation Logic END ---
 
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<div class="spinner-border spinner-border-sm text-light"></div> خەریکی ناردن...';
+    // ==========================================
+    // UI دەستپێکردنی Premium Progress
+    // ==========================================
+    const progressContainer = document.getElementById('premiumProgressContainer');
+    const progressWrapper = document.getElementById('progressWrapper');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const progressMainText = document.getElementById('progressMainText');
+    const progressSubText = document.getElementById('progressSubText');
+    const progressIcon = document.getElementById('progressIcon');
+
+    if(submitBtn) submitBtn.classList.add('d-none');
+    
+    let progress = 0;
+    let progressInterval;
+    
+    if(progressContainer) {
+        progressContainer.classList.remove('d-none');
+        progressBar.style.width = '0%';
+        progressText.innerText = '0%';
+        progressWrapper.classList.remove('success-mode');
+        progressIcon.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i>';
+        progressMainText.innerText = 'ئامادەکردنی داتا...';
+        progressSubText.innerText = 'خەریکی ڕێکخستنی زانیارییەکانین';
+
+        progressInterval = setInterval(() => {
+            if (progress < 85) {
+                progress += Math.floor(Math.random() * 5) + 1; 
+                if (progress > 85) progress = 85;
+                progressBar.style.width = progress + '%';
+                progressText.innerText = progress + '%';
+            }
+        }, 300);
+    }
 
     try {
         let formData = {};
@@ -629,36 +581,48 @@ formEl.addEventListener('submit', async (e) => {
             if (item.value) formData[item.name] = item.value;
         }
 
-        // Upload Edited Photos (ImageKit)
-        for (const [fieldId, files] of Object.entries(photosStore)) { // fieldName بوو بە fieldId
+        // Upload Photos
+        let hasPhotos = false;
+        for (const [fieldId, files] of Object.entries(photosStore)) { 
             const validFiles = files.filter(f => f !== null);
             if (validFiles.length > 0) {
-                submitBtn.innerHTML = `<div class="spinner-border spinner-border-sm text-light"></div> بارکردنی وێنەکان...`;
+                hasPhotos = true;
+                if(progressSubText) {
+                    progressMainText.innerText = 'بەرزکردنەوە...';
+                    progressSubText.innerText = 'تکایە پەڕەکە دامەخە تا زانیارییەکان دەنێردرێن.';
+                }
                 let uploadedUrls = [];
                 for (const file of validFiles) {
-                    const url = await uploadImageToImageKit(file);
+                    const url = await uploadImageToFirebase(file);
                     if(url) uploadedUrls.push(url);
                 }
-                if (uploadedUrls.length > 0) formData[fieldId] = uploadedUrls; // گۆڕدرا بۆ ئایدی
+                if (uploadedUrls.length > 0) formData[fieldId] = uploadedUrls; 
             }
         }
 
-        // +++ ئەپلۆدکردنی واژۆکان (ImageKit) +++
+        // Upload Signatures
         for (const [fieldId, pad] of Object.entries(fingerprintPads)) {
             if (!pad.isEmpty()) {
-                submitBtn.innerHTML = `<div class="spinner-border spinner-border-sm text-light"></div> واژۆ...`;
+                if(progressSubText) {
+                    progressMainText.innerText = 'بەرزکردنەوەی واژۆکان...';
+                    progressSubText.innerText = 'خەریکی پاشەکەوتکردنی واژۆی ئەلیکترۆنین';
+                }
                 const dataURL = pad.toDataURL("image/png");
                 const res = await fetch(dataURL);
                 const blob = await res.blob();
                 const file = new File([blob], "signature.png", { type: "image/png" });
                 
-                const url = await uploadImageToImageKit(file);
-                if(url) formData[fieldId] = url; // ڕاستەوخۆ دەچێتە سەر ئایدییەکە
+                const url = await uploadImageToFirebase(file);
+                if(url) formData[fieldId] = url; 
             }
         }
-        // +++++++++++++++++++++++++++
 
-        submitBtn.innerHTML = '<div class="spinner-border spinner-border-sm text-light"></div> خەزن دەکرێت...';
+        // Save to Database
+        if(progressSubText) {
+            progressMainText.innerText = 'پاشەکەوتکردنی کۆتایی...';
+            progressSubText.innerText = 'پەیوەستبوون بە داتابەیسەوە';
+        }
+
         await db.collection("forms").doc(formId).collection("submissions").add({
             data: formData,
             submittedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -666,73 +630,83 @@ formEl.addEventListener('submit', async (e) => {
 
         localStorage.removeItem(STORAGE_KEY);
 
-        if(typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'success',
-                title: 'سەرکەوتوو بوو',
-                text: 'زانیارییەکان بە سەرکەوتوویی نێردران!',
-                showConfirmButton: false,
-                timer: 2000
-            }).then(() => {
-                window.location.reload();
-            });
-        } else {
-            alert('سەرکەوتوو بوو!');
-            window.location.reload();
+        // ==========================================
+        // تەواوبوون بە دیزاینی Premium
+        // ==========================================
+        if(progressContainer) {
+            clearInterval(progressInterval);
+            progressBar.style.width = '100%';
+            progressText.innerText = '100%';
+            progressWrapper.classList.add('success-mode');
+            progressIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
+            progressMainText.innerText = 'بە سەرکەوتوویی نێردرا!';
+            progressSubText.innerText = 'زانیارییەکانت گەیشتنە لامان';
         }
+
+        setTimeout(() => {
+            if(typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'سەرکەوتوو بوو',
+                    text: 'زانیارییەکان بە سەرکەوتوویی نێردران!',
+                    showConfirmButton: false,
+                    timer: 2000
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                alert('سەرکەوتوو بوو!');
+                window.location.reload();
+            }
+        }, 1200);
 
     } catch (error) {
         console.error("Error:", error);
+        
+        if(progressContainer) {
+            clearInterval(progressInterval);
+            progressContainer.classList.add('d-none');
+            progressBar.style.width = '0%';
+        }
+        if(submitBtn) {
+            submitBtn.classList.remove('d-none');
+            submitBtn.disabled = false;
+        }
+
         if(typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'error',
-                title: 'هەڵە ڕوویدا',
-                text: error.message,
-                confirmButtonText: 'باشە'
-            });
+            Swal.fire({ icon: 'error', title: 'هەڵە ڕوویدا', text: error.message, confirmButtonText: 'باشە' });
         } else alert(error.message);
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalBtnText;
     }
 });
 
 // ==========================================
-// IMAGEKIT UPLOAD FUNCTION
+// FIREBASE UPLOAD FUNCTION
 // ==========================================
-async function uploadImageToImageKit(file) {
+async function uploadImageToFirebase(file) {
     if (!file) return null;
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("fileName", file.name);
-    formData.append("useUniqueFileName", "true"); 
-    formData.append("folder", "/form_photos"); 
-
+    
+    // دروستکردنی ناوێکی تایبەت بۆ ئەوەی وێنەکان یان واژۆکان تێکەڵ نەبن
+    const uniqueFileName = 'form_photos/' + Date.now() + '_' + file.name;
+    const storageRef = firebase.storage().ref();
+    const fileRef = storageRef.child(uniqueFileName);
+    
     try {
-        const response = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
-            method: "POST",
-            headers: {
-                "Authorization": "Basic " + btoa(IMAGEKIT_PRIVATE_KEY + ":")
-            },
-            body: formData
-        });
-
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.message || "Upload Failed");
-        }
-
-        const data = await response.json();
-        return data.url; 
-
+        // بەرزکردنەوەی فایلەکە بۆ Firebase Storage
+        const snapshot = await fileRef.put(file);
+        // وەرگرتنی لینکی فایلەکە
+        const downloadURL = await snapshot.ref.getDownloadURL();
+        return downloadURL;
+        
     } catch (error) {
-        console.error("Upload Error:", error);
-        alert("کێشە لە بارکردنی وێنە: " + error.message);
+        console.error("Firebase Upload Error:", error);
+        if(typeof Swal !== 'undefined') {
+             Swal.fire({ icon: 'error', title: 'هەڵە', text: 'کێشە لە بارکردنی فایلەکە ڕوویدا' });
+        } else {
+             alert("کێشە لە بارکردنی وێنە: " + error.message);
+        }
         return null;
     }
 }
-
-initView();
 
 // --- فەنکشنەکانی Auto-Save ---
 function handleAutoSave(e) {
@@ -788,3 +762,5 @@ function restoreProgress() {
         console.error("Auto-save restore failed", e);
     }
 }
+
+initView();

@@ -7,14 +7,12 @@
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <link rel="icon" type="image/jpeg" href="logo.jpg">
 <link rel="apple-touch-icon" sizes="180x180" href="logo.jpg">
 <meta name="theme-color" content="#ffffff">
     
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/dark-mode.css">
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.8/jquery.inputmask.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
@@ -23,6 +21,139 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;900&display=swap');
         
+        /* =========================================
+   دیزاینی Premium بۆ هێڵی بەرەوپێشچوون
+   ========================================= */
+.premium-progress-wrapper {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 20px 25px;
+    box-shadow: 0 15px 35px rgba(79, 70, 229, 0.1);
+    position: relative;
+    overflow: hidden;
+    animation: fadeInScale 0.4s ease-out forwards;
+}
+
+body.dark-mode .premium-progress-wrapper {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+.progress-status-box {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.icon-pulse {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4f46e5, #38bdf8);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4);
+    animation: pulse-ring 2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+    flex-shrink: 0;
+}
+
+.status-texts {
+    flex-grow: 1;
+    text-align: right;
+}
+
+.status-texts h5 { 
+    margin: 0 0 4px 0; 
+    font-weight: 800; 
+    font-size: 1.1rem; 
+    color: #1e293b; 
+}
+
+body.dark-mode .status-texts h5 { color: #f1f5f9; }
+
+.status-texts p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.percentage-badge {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #4f46e5;
+    font-weight: 900;
+    font-size: 1.3rem;
+    padding: 8px 15px;
+    border-radius: 12px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+
+body.dark-mode .percentage-badge { 
+    background: #0f172a; 
+    border-color: #1e293b;
+    color: #38bdf8; 
+}
+
+.premium-track {
+    height: 12px;
+    background: #f1f5f9;
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+body.dark-mode .premium-track { background: #0f172a; }
+
+.premium-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4f46e5, #38bdf8);
+    border-radius: 20px;
+    position: relative;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.premium-fill::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transform: translateX(-100%);
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
+    70% { box-shadow: 0 0 0 15px rgba(79, 70, 229, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+}
+
+@keyframes shimmer {
+    100% { transform: translateX(100%); }
+}
+
+@keyframes fadeInScale {
+    from { opacity: 0; transform: scale(0.95) translateY(15px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* دۆخی سەرکەوتن */
+.success-mode .icon-pulse {
+    background: linear-gradient(135deg, #10b981, #34d399);
+    animation: none;
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+}
+.success-mode .premium-fill { background: linear-gradient(90deg, #10b981, #34d399); }
+.success-mode .percentage-badge { color: #10b981; }
+
         body {
             font-family: 'Vazirmatn', sans-serif;
             background-color: #f1f5f9; /* پاشبنەمایەکی کاڵتر */
@@ -51,23 +182,87 @@
             border-radius: 20px 20px 0 0;
         }
 
+        /* =========================================
+           دیزاینی نوێی لۆگۆکە و ڕووناکییە سوڕاوەکە
+           ========================================= */
         .header-icon-box {
             width: 100px;
             height: 100px;
-            background: #4f46e5; /* ڕەنگی فەرمی */
-            color: white;
+            background: #ffffff; 
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 3rem;
             position: absolute;
-            top: -50px; /* نیوەی دەچێتە دەرەوە */
+            top: -50px; 
             left: 50%;
             transform: translateX(-50%);
-            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
-            border: 6px solid #f1f5f9; /* چوارچێوەیەک بە ڕەنگی پاشبنەمای پەڕەکە */
+            /* گۆڕینی border بۆ box-shadow بۆ ئەوەی کێشە لەگەڵ ئەنیمەیشنەکە دروست نەکات */
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4), 0 0 0 6px #f1f5f9;
             z-index: 10;
+            overflow: hidden; /* گرنگە بۆ شاردنەوەی سووچەکانی ڕووناکییەکە */
+        }
+
+        /* دوو ڕووناکییە سوڕاوەکە */
+        .header-icon-box::before {
+            content: "";
+            position: absolute;
+            width: 150%;
+            height: 150%;
+            background: conic-gradient(
+                transparent 0%, 
+                transparent 40%, 
+                #000000 50%, 
+                transparent 60%, 
+                transparent 90%, 
+                #000000 100%
+            );
+            animation: spinLight 3s linear infinite;
+            z-index: 0;
+        }
+
+        /* باکگراوندی ناوەوە کە ڕووناکییەکە تەنها وەک هێڵێک دەهێڵێتەوە */
+        .header-icon-box::after {
+            content: "";
+            position: absolute;
+            inset: 3px; /* ئەستووری هێڵە ڕووناکییەکە (گەر ویستت ئەستوورتر بێت بیکە بە 4px) */
+            background: #ffffff;
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        @keyframes spinLight {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .header-icon-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; 
+            border-radius: 50%;
+            position: relative;
+            z-index: 2; /* بۆ ئەوەی لۆگۆکە بکەوێتە سەرووی ڕووناکییەکە */
+            padding: 6px; /* مەسافەیەک دەداتە لۆگۆکە بۆ ئەوەی نەچێتە سەر هێڵە سوڕاوەکە */
+        }
+
+        /* گونجاندنی دۆخی تاریک (Dark Mode) بۆ لۆگۆکە */
+        body.dark-mode .header-icon-box {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 0 6px #0f172a;
+            background: #1e293b;
+        }
+        body.dark-mode .header-icon-box::after {
+            background: #1e293b;
+        }
+        body.dark-mode .header-icon-box::before {
+            background: conic-gradient(
+                transparent 0%, 
+                transparent 40%, 
+                #38bdf8 50%, 
+                transparent 60%, 
+                transparent 90%, 
+                #38bdf8 100%
+            );
         }
 
         .modern-title {
@@ -125,18 +320,18 @@
         }
 
         /* ئەمە زیاد بکە بۆ ئەوەی جوڵەی هاتنە ناوەوەی هەبێت */
-.animate-up {
-    animation: fadeInUp 0.6s ease-out forwards;
-    opacity: 0;
-    transform: translateY(20px);
-}
+        .animate-up {
+            animation: fadeInUp 0.6s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
 
-@keyframes fadeInUp {
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 <body>
@@ -169,7 +364,7 @@
         
         <div class="modern-header">
             <div class="header-icon-box">
-                <i class="fa-solid fa-file-contract"></i>
+                <img src="logo.jpg" alt="Mrovdostan Logo">
             </div>
             <h1 id="formTitleDisplay" class="modern-title">...</h1>
             <div class="modern-subtitle">فۆڕمی تۆمارکردنی زانیاری</div>
@@ -180,11 +375,31 @@
                 <div id="dynamicInputs" class="d-flex flex-column gap-4">
                     </div>
 
-                <div class="mt-5 pt-3 border-top text-center">
-                    <button type="submit" id="submitBtn" class="btn-submit">
-                        ناردنی زانیاری <i class="fa-regular fa-paper-plane ms-2"></i>
-                    </button>
+<div class="mt-5 pt-3 border-top text-center">
+    <button type="submit" id="submitBtn" class="btn-submit">
+        ناردنی زانیاری <i class="fa-regular fa-paper-plane ms-2"></i>
+    </button>
+
+    <div id="premiumProgressContainer" class="d-none text-start mt-4">
+        <div class="premium-progress-wrapper" id="progressWrapper">
+            <div class="progress-status-box">
+                <div class="icon-pulse" id="progressIcon">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
                 </div>
+                <div class="status-texts">
+                    <h5 id="progressMainText">خەریکی پرۆسێسکردن...</h5>
+                    <p id="progressSubText">تکایە چاوەڕێبە، پەڕەکە مەداخە</p>
+                </div>
+                <div class="percentage-badge">
+                    <span id="progressText">0%</span>
+                </div>
+            </div>
+            <div class="premium-track">
+                <div id="progressBar" class="premium-fill"></div>
+            </div>
+        </div>
+    </div>
+</div>
             </form>
         </div>
         
@@ -196,9 +411,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 
 <script src="js/firebase-config.js"></script>

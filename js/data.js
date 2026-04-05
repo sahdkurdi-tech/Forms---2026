@@ -1,10 +1,5 @@
 // js/data.js
 
-// ******************************************************
-// IMAGEKIT CONFIGURATION
-// ******************************************************
-const IMAGEKIT_PRIVATE_KEY = "private_1c11AFDWMP9vctTdwopQFDLCaBU="; 
-
 // Service Worker Cleanup
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(r => r.forEach(sw => sw.unregister()));
@@ -383,8 +378,42 @@ function setupHeaders() {
 }
 
 // ============================================================
+// ============================================================
 // 3. EDIT MODAL
 // ============================================================
+
+// --- فەنکشنی نوێ بۆ گۆڕینی ژمارەی کوردی/عەرەبی بە ئینگلیزی ---
+window.convertAllNumerals = function(input) {
+    if (!input || input.type === 'date' || input.type === 'checkbox' || input.type === 'radio' || input.type === 'file') return;
+
+    const numbers = {
+        '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+        '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
+        '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
+        '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9'
+    };
+    
+    let val = input.value;
+    if (!val) return;
+
+    let converted = val.replace(/[٠-٩۰-۹]/g, function(match) {
+        return numbers[match];
+    });
+    
+    if (input.getAttribute('inputmode') === 'numeric' || input.type === 'number') {
+        converted = converted.replace(/[^0-9.]/g, ''); 
+    }
+    
+    if (val !== converted) {
+        let start = input.selectionStart;
+        let end = input.selectionEnd;
+        input.value = converted;
+        try {
+            input.setSelectionRange(start, end);
+        } catch(e) {}
+    }
+};
+
 function openEditModal(docId) {
     const data = allSubmissions.find(d => d.id === docId);
     if (!data) return;
@@ -532,12 +561,31 @@ function renderEditFieldsRecursive(fields, currentData, container) {
             inputEl = document.createElement('textarea');
             inputEl.className = 'form-control';
             inputEl.rows = 3; inputEl.name = f.id; inputEl.value = currentVal; 
+            inputEl.oninput = function() { window.convertAllNumerals(this); }; // <--- بۆ گۆڕینی ژمارە زیادکرا
+            fieldWrapper.appendChild(inputEl);
+        } else if(f.type === 'date') {
+            inputEl = document.createElement('input');
+            inputEl.type = 'date';
+            inputEl.className = 'form-control';
+            inputEl.name = f.id; 
+            if(currentVal && currentVal.includes('/')) {
+                let parts = currentVal.split('/');
+                if(parts.length === 3) inputEl.value = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            } else {
+                inputEl.value = currentVal;
+            }
             fieldWrapper.appendChild(inputEl);
         } else {
             inputEl = document.createElement('input');
-            inputEl.type = f.type === 'number' ? 'number' : 'text';
+            if (f.type === 'number') {
+                inputEl.type = 'text'; // <--- بۆ کارکردنی کیبۆردی کوردی
+                inputEl.setAttribute('inputmode', 'numeric');
+            } else {
+                inputEl.type = 'text';
+            }
             inputEl.className = 'form-control';
             inputEl.name = f.id; inputEl.value = currentVal; 
+            inputEl.oninput = function() { window.convertAllNumerals(this); }; // <--- بۆ گۆڕینی ژمارە زیادکرا
             fieldWrapper.appendChild(inputEl);
         }
         container.appendChild(fieldWrapper);
@@ -598,11 +646,26 @@ async function saveEditedData() {
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<div class="spinner-border spinner-border-sm"></div> خەزن دەکرێت...';
     
-    // هێشتنەوەی داتا کۆنەکان بۆ ئەوەی ئەوانەی لە مۆدالەکە پیشان نادرێن نەفەوتێن
     let newData = {};
     const targetIndex = allSubmissions.findIndex(sub => sub.id === docId);
     if(targetIndex !== -1 && allSubmissions[targetIndex].data) {
         newData = { ...allSubmissions[targetIndex].data };
+    }
+
+    // پشکنین بۆ ئەو وێنانەی لەناو پەنجەرەی دەستکاریکردن سڕاونەتەوە
+    let urlsToDelete = [];
+    if(targetIndex !== -1 && allSubmissions[targetIndex].data) {
+        const oldData = allSubmissions[targetIndex].data;
+        for (const [fieldId, store] of Object.entries(editPhotosStore)) {
+            const fieldDef = formFields.find(f => f.id === fieldId);
+            if (fieldDef && (fieldDef.type === 'photo' || fieldDef.type === 'fingerprint')) {
+                let oldUrls = parseImageUrls(getFieldValue(oldData, fieldDef));
+                let keptUrls = store.existing;
+                oldUrls.forEach(url => {
+                    if (!keptUrls.includes(url)) urlsToDelete.push(url); // ئەگەر وێنە کۆنەکە لەناو نوێیەکاندا نەما، بیخە لیستی سڕینەوە
+                });
+            }
+        }
     }
 
     try {
@@ -616,7 +679,6 @@ async function saveEditedData() {
             if(values.length > 0) newData[name] = values; else newData[name] = [];
             processedCheckboxes.add(name);
             
-            // سڕینەوەی ناونیشانە کۆنەکە لەناو داتابەیس بۆ پاکڕاگرتنی فایەربەیس
             const fieldDef = formFields.find(f => f.id === name);
             if (fieldDef && fieldDef.label && newData[fieldDef.label]) delete newData[fieldDef.label];
         });
@@ -636,7 +698,7 @@ async function saveEditedData() {
             if (store.new.length > 0) {
                 submitBtn.innerHTML = `<div class="spinner-border spinner-border-sm"></div> وێنە...`;
                 for (const file of store.new) {
-                    const url = await uploadImageToImageKit(file);
+                    const url = await uploadImageToFirebase(file);
                     if(url) finalUrls.push(url);
                 }
             }
@@ -646,10 +708,13 @@ async function saveEditedData() {
             if (fieldDef && fieldDef.label && newData[fieldDef.label]) delete newData[fieldDef.label];
         }
 
-        // ئەپدەیتکردنی فایەربەیس
         await db.collection("forms").doc(formId).collection("submissions").doc(docId).update({ data: newData });
         
-        // *** چارەسەرە سەرەکییەکە لێرەدایە: ئەپدەیتکردنی داتای سەر شاشەکە بێ ڕیفڕێشکردن ***
+        // سڕینەوەی وێنە لا براوەکان لە Firebase Storage بە شێوەی ئۆتۆماتیکی
+        for (const url of urlsToDelete) {
+            await deleteImageFromFirebase(url);
+        }
+
         if(targetIndex !== -1) {
             allSubmissions[targetIndex].data = newData;
         }
@@ -657,7 +722,6 @@ async function saveEditedData() {
         alert("زانیارییەکان بە سەرکەوتوویی نوێکرانەوە!");
         bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
         
-        // ڕیفڕێشکردنی خشتەکە دەستبەجێ
         document.getElementById('tableBody').innerHTML = '';
         currentRenderIndex = 0;
         renderNextBatch();
@@ -671,25 +735,52 @@ async function saveEditedData() {
     }
 }
 
-async function uploadImageToImageKit(file) {
+// ئەمە دابنێ لە جێگەی
+async function uploadImageToFirebase(file) {
     if (!file) return null;
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("fileName", file.name);
-    formData.append("useUniqueFileName", "true"); 
-    formData.append("folder", "/form_photos"); 
+    
+    // دروستکردنی ناوێکی تایبەت بۆ وێنەکە بۆ ئەوەی تێکەڵ نەبن
+    const uniqueFileName = 'form_photos/' + Date.now() + '_' + file.name;
+    const storageRef = firebase.storage().ref();
+    const fileRef = storageRef.child(uniqueFileName);
+    
     try {
-        const response = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
-            method: "POST", headers: { "Authorization": "Basic " + btoa(IMAGEKIT_PRIVATE_KEY + ":") }, body: formData
-        });
-        if (!response.ok) throw new Error("Upload Failed");
-        const data = await response.json(); return data.url; 
-    } catch (error) { console.error(error); return null; }
+        // بەرزکردنەوەی وێنەکە بۆ Firebase Storage
+        const snapshot = await fileRef.put(file);
+        // وەرگرتنی لینکی وێنەکە
+        const downloadURL = await snapshot.ref.getDownloadURL();
+        return downloadURL;
+    } catch (error) { 
+        console.error("Firebase Upload Error: ", error); 
+        return null; 
+    }
 }
 
-// ============================================================
-// 4. DETAIL MODAL 
-// ============================================================
+// فەنکشن بۆ سڕینەوەی ڕاستەوخۆی وێنە لە Firebase Storage
+async function deleteImageFromFirebase(imageUrl) {
+    if (!imageUrl || !imageUrl.includes('firebasestorage')) return;
+    try {
+        const fileRef = firebase.storage().refFromURL(imageUrl);
+        await fileRef.delete();
+        console.log("وێنەکە لە سێرڤەر سڕایەوە:", imageUrl);
+    } catch (error) {
+        console.error("هەڵە لە سڕینەوەی وێنەی سێرڤەر: ", error);
+    }
+}
+
+// فەنکشن بۆ هێنانی هەموو لینکەکانی ناو کەیسێک
+function extractAllImageUrlsFromData(dataObj) {
+    let urls = [];
+    formFields.forEach(f => {
+        if (f.type === 'photo' || f.type === 'fingerprint') {
+            let val = getFieldValue(dataObj, f);
+            let parsedUrls = parseImageUrls(val);
+            urls = urls.concat(parsedUrls);
+        }
+    });
+    return urls;
+}
+
 // ============================================================
 // 4. DETAIL MODAL (NEW MODERN DESIGN)
 // ============================================================
@@ -751,12 +842,24 @@ function renderDetailFieldsRecursive(fields, values, container, isNested = false
         // شێوازی پیشاندانی وەڵامەکان
         if (isEmpty) {
             content = `<span class="badge bg-light text-muted border px-2 py-1 mt-1 fw-normal">بەتاڵە</span>`;
-        } else if(f.type === 'photo' || f.type === 'fingerprint') {
+} else if(f.type === 'photo' || f.type === 'fingerprint') {
             let urls = parseImageUrls(rawVal);
             if (urls.length === 0) {
                  content = `<span class="badge bg-light text-muted border px-2 py-1 mt-1 fw-normal">بەتاڵە</span>`;
             } else {
-                let galleryHtml = `<div class="d-flex flex-wrap gap-2 justify-content-start mt-2">`;
+                // -- گۆڕانکارییەکە لێرەدایە --
+                // ١. کۆدکردنی لینکەکان بۆ ئەوەی بە سەلامەتی بنێردرێت بۆ فەنکشنەکە
+                const safeUrls = encodeURIComponent(JSON.stringify(urls));
+                
+                // ٢. زیادکردنی دوگمەکە لەسەرەوەی وێنەکان
+                let galleryHtml = `
+                    <div class="mb-2 text-start">
+                        <button onclick="shareImagesAsPDF('${safeUrls}')" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm">
+                            <i class="fa-brands fa-whatsapp me-1"></i> شەیرکردنی وێنەکان (PDF)
+                        </button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 justify-content-start mt-2">`;
+                
                 urls.forEach(url => { 
                     galleryHtml += `<a href="${url}" target="_blank" style="transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                         <img src="${url}" class="rounded-3 border shadow-sm" style="width: 85px; height: 85px; object-fit: cover;" onerror="this.src='https://via.placeholder.com/85?text=Error'">
@@ -765,8 +868,8 @@ function renderDetailFieldsRecursive(fields, values, container, isNested = false
                 galleryHtml += `</div>`;
                 content = `<div>${galleryHtml}</div>`;
             }
-        } 
-        else if(f.type === 'note') {
+        }
+                else if(f.type === 'note') {
              content = `<div class="p-3 bg-light rounded-3 border-start border-4 border-secondary text-dark mt-2 shadow-sm" style="white-space: pre-wrap; font-size: 0.95em; line-height: 1.6;">${rawVal}</div>`;
         } else {
             let displayVal = Array.isArray(rawVal) ? rawVal.join('، ') : rawVal;
@@ -1154,8 +1257,56 @@ function loadMoreSearchResults() {
 
 function toggleSelection(id) { if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id); updateBulkDeleteBtn(); }
 function updateBulkDeleteBtn() { const btn = document.getElementById('bulkDeleteBtn'); const countSpan = document.getElementById('selectedCount'); if(selectedIds.size > 0) { btn.classList.remove('d-none'); countSpan.innerText = selectedIds.size; } else { btn.classList.add('d-none'); } }
-async function deleteSelected() { if(!confirm(`دڵنیایت لە سڕینەوەی ${selectedIds.size} داتا؟`)) return; const batch = db.batch(); selectedIds.forEach(id => { const ref = db.collection("forms").doc(formId).collection("submissions").doc(id); batch.delete(ref); }); try { await batch.commit(); alert("سڕایەوە!"); selectedIds.clear(); updateBulkDeleteBtn(); loadInitialData(); } catch(e) { alert("هەڵە: " + e.message); } }
-async function deleteSingle(id) { if(confirm("دڵنیایت؟")) { await db.collection("forms").doc(formId).collection("submissions").doc(id).delete(); loadInitialData(); } }
+async function deleteSelected() { 
+    if(!confirm(`دڵنیایت لە سڕینەوەی ${selectedIds.size} داتا؟`)) return; 
+    
+    // کۆکردنەوەی هەموو ئەو وێنانەی کە دەبێت بسڕێنەوە
+    let urlsToDelete = [];
+    selectedIds.forEach(id => {
+        const targetDoc = allSubmissions.find(sub => sub.id === id);
+        if (targetDoc && targetDoc.data) {
+            urlsToDelete = urlsToDelete.concat(extractAllImageUrlsFromData(targetDoc.data));
+        }
+    });
+
+    const batch = db.batch(); 
+    selectedIds.forEach(id => { 
+        const ref = db.collection("forms").doc(formId).collection("submissions").doc(id); 
+        batch.delete(ref); 
+    }); 
+    
+    try { 
+        await batch.commit(); 
+        
+        // سڕینەوەی وێنەکان لە ستۆرج دوای ئەوەی کەیسەکە سڕایەوە
+        for (const url of urlsToDelete) {
+            await deleteImageFromFirebase(url);
+        }
+
+        alert("سڕایەوە!"); 
+        selectedIds.clear(); 
+        updateBulkDeleteBtn(); 
+        loadInitialData(); 
+    } catch(e) { alert("هەڵە: " + e.message); } 
+}
+
+async function deleteSingle(id) { 
+    if(confirm("دڵنیایت؟")) { 
+        const targetDoc = allSubmissions.find(sub => sub.id === id);
+        let urlsToDelete = [];
+        if (targetDoc && targetDoc.data) {
+            urlsToDelete = extractAllImageUrlsFromData(targetDoc.data);
+        }
+        
+        await db.collection("forms").doc(formId).collection("submissions").doc(id).delete(); 
+        
+        // سڕینەوەی وێنەکان
+        for (const url of urlsToDelete) {
+            await deleteImageFromFirebase(url);
+        }
+        loadInitialData(); 
+    } 
+}
 
 function toggleColumn(index, isVisible) {
     const table = document.getElementById('dataTable');
@@ -1182,4 +1333,75 @@ function toggleColumn(index, isVisible) {
 
     const storageKey = "hidden_cols_" + formId;
     localStorage.setItem(storageKey, JSON.stringify(hiddenCols));
+}
+
+// فەنکشنی نوێ بۆ شەیرکردنی وێنەکان وەک PDF
+async function shareImagesAsPDF(imageUrlsStr) {
+    let imageUrls = [];
+    try {
+        // گۆڕینی تێکستەکە بۆ ئارەی
+        imageUrls = typeof imageUrlsStr === 'string' ? JSON.parse(decodeURIComponent(imageUrlsStr)) : imageUrlsStr;
+    } catch(e) { console.error(e); }
+
+    if (!imageUrls || imageUrls.length === 0) {
+        Swal.fire('ئاگاداری', 'هیچ وێنەیەک نییە بۆ ناردن!', 'warning');
+        return;
+    }
+
+    Swal.fire({
+        title: 'ئامادەکردنی PDF...',
+        text: 'تکایە چاوەڕێ بە',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        for (let i = 0; i < imageUrls.length; i++) {
+            const url = imageUrls[i];
+            
+            // هێنانی وێنەکە و گۆڕینی بۆ Base64 (بۆ ئەوەی کێشەی لەگەڵ PDF نەبێت)
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const base64data = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+            });
+
+            // زیادکردنی پەڕەی نوێ ئەگەر وێنەی یەکەم نەبوو
+            if (i > 0) doc.addPage();
+
+            // ڕێکخستنی قەبارەی وێنەکە بۆ ناو پەڕەی A4
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            
+            // وێنەکە لە ناوەڕاست و بەقەبارەی گونجاو دادەنێت
+            doc.addImage(base64data, 'JPEG', 5, 5, pageWidth - 10, pageHeight - 10, undefined, 'FAST');
+        }
+
+        // دروستکردنی فایلی PDF
+        const pdfBlob = doc.output('blob');
+        const file = new File([pdfBlob], "Case_Images.pdf", { type: "application/pdf" });
+
+        Swal.close();
+
+        // ناردنی فایلەکە بە بەکارهێنانی Web Share API (بۆ مۆبایل)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                title: 'وێنەکانی کەیس',
+                files: [file]
+            });
+        } else {
+            // بۆ کۆمپیوتەر یان ئەو براوزەرانەی پشتگیری شەیر ناکەن، فایلەکە ڕاستەوخۆ دادەبەزێت
+            doc.save("Case_Images.pdf");
+            Swal.fire('سەرکەوتوو', 'لەبەر ئەوەی براوزەرەکەت پشتگیری شەیر ناکات، فایلەکە داگیرا.', 'success');
+        }
+
+    } catch (error) {
+        console.error("Error creating PDF:", error);
+        Swal.fire('هەڵە', 'کێشەیەک ڕوویدا لە کاتی ئامادەکردنی وێنەکان.', 'error');
+    }
 }

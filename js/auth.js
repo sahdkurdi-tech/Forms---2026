@@ -9,9 +9,18 @@ firebase.auth().onAuthStateChanged(async (user) => {
         return;
     }
 
+    // --- ئەم بەشە نوێیە زیاد کرا ---
+    // ئەگەر بەکارهێنەر لۆگین بووە و ئێستا لە پەڕەی لۆگینە، ڕاستەوخۆ بیبە بۆ پەڕەی سەرەکی
+    if (path.includes("login.html")) {
+        window.location.href = "index.html";
+        return; 
+    }
+    // -------------------------------
+
     // لێرەدا دەچین زانیاری بەکارهێنەر لە داتابەیس دەهێنین
-    // چیتر پشت بە نوسینی ئیمەیڵەکە نابەستین لە کۆدەکەدا
-    const userDoc = await db.collection("users").doc(user.email).get();
+    // بەکارهێنانی toLowerCase() بۆ دڵنیابوون لە نەبوونی کێشەی پیتی گەورە و بچووک
+    const userEmail = user.email.toLowerCase();
+    const userDoc = await db.collection("users").doc(userEmail).get();
 
     if (!userDoc.exists) {
         // ئەگەر ئەم کەسە لە داتابەیس نەبوو، واتە هیچ دەسەڵاتێکی نییە

@@ -1,8 +1,5 @@
 // js/firebase-config.js
 
-// ١. زانیارییەکانی ImgBB
-const imgbbAPIKey = "6af58315becc401b1652235b9dcbe9c9";
-
 // ٢. زانیارییەکانی Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCMgwV15hUX0kruGcSZ48zTRCYCG1dUf_k",
@@ -16,11 +13,15 @@ const firebaseConfig = {
 // پەیوەستبوون (Initialize)
 // تێبینی: ئێمە کتێبخانەی compat بەکاردێنین لە html بۆیە بەم شێوەیە دەینوسین
 if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
+  firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.firestore();
+
+const storage = firebase.storage();
+// چارەسەری کێشەی هێڵی کۆڕەک و بلۆکبوونی WebSockets
 // چارەسەری کێشەی هێڵی کۆڕەک و بلۆکبوونی WebSockets
 db.settings({
-    experimentalForceLongPolling: true,
-    useFetchStreams: false
+  experimentalForceLongPolling: true,
+  useFetchStreams: false,
+  merge: true // ئەم دێڕە زیادکرا بۆ لابردنی ئێرۆرەکەی کۆنسۆڵ
 });

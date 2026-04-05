@@ -3,9 +3,9 @@
 // بەکارهێنانی orderBy بۆ هێنان بەپێی ڕیزبەندی دیاریکراو
 db.collection("forms").orderBy("order", "asc").onSnapshot(async (snapshot) => {
     const container = document.getElementById('formsContainer');
-    const loadingSpinner = document.getElementById('loadingSpinner'); 
-    
-    if(loadingSpinner) loadingSpinner.style.display = 'none';
+    const loadingSpinner = document.getElementById('loadingSpinner');
+
+    if (loadingSpinner) loadingSpinner.style.display = 'none';
     container.innerHTML = "";
 
     // --- بەشی گرنگ: چارەسەرکردنی کێشەی دیارنەمان ---
@@ -13,11 +13,11 @@ db.collection("forms").orderBy("order", "asc").onSnapshot(async (snapshot) => {
         // پشکنین دەکەین بزانین ئایا بەڕاستی هیچ فۆڕمێک نییە، یان تەنها Orderیان نییە؟
         // تێبینی: ئەمە یەکجار ڕوودەدات بۆ چاککردنی داتاکانی کۆن
         const checkSnapshot = await db.collection("forms").get();
-        
+
         if (!checkSnapshot.empty) {
             // واتە: فۆڕم هەیە، بەڵام چونکە orderـیان نییە دەرناکەون
             console.log("Detecting old forms without order. Fixing...");
-            
+
             const batch = db.batch();
             checkSnapshot.docs.forEach((doc, index) => {
                 // ئەگەر orderی نەبوو، بۆی دادەنێین
@@ -45,46 +45,54 @@ db.collection("forms").orderBy("order", "asc").onSnapshot(async (snapshot) => {
         const data = doc.data();
         const id = doc.id;
         const viewLink = `${window.location.origin}/view.html?id=${id}`;
-        
+        const isActive = data.active !== false;
+
         container.innerHTML += `
             <div class="col-md-6 col-lg-4 mb-4">
-                <div class="project-card">
+                <div class="project-card-advanced">
+                    <div class="project-header">
+                        <div class="project-icon-wrapper">
+                            <i class="fa-solid fa-layer-group"></i>
+                        </div>
+                        <span class="project-status ${isActive ? 'status-active' : 'status-paused'}">
+                            <i class="fa-solid ${isActive ? 'fa-check-circle' : 'fa-pause-circle'} ms-1"></i> 
+                            ${isActive ? 'چالاکە' : 'ڕاگیراوە'}
+                        </span>
+                    </div>
                     
-                    <div class="card-body-custom">
-                        
-                        <div class="card-header-row">
-                            <div class="card-title-text text-truncate" style="max-width: 70%;" title="${data.title}">${data.title}</div>
-                            <span class="badge ${data.active !== false ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'} rounded-pill">
-                                ${data.active !== false ? 'چالاکە' : 'ڕاگیراوە'}
-                            </span>
-                        </div>
+                    <h3 class="project-title text-truncate" title="${data.title || 'بێ ناو'}">${data.title || 'بێ ناو'}</h3>
+                    <div class="project-meta">
+                        <span>
+                            <i class="fa-regular fa-clock"></i> 
+                            ${data.createdAt ? new Date(data.createdAt.toDate()).toLocaleDateString('ku-IQ') : 'نوێ'}
+                        </span>
+                    </div>
 
-                        <div class="main-actions-row">
-                            <a href="${viewLink}" target="_blank" class="btn-fill-form">
-                                <i class="fa-solid fa-pen-to-square"></i> پڕکردنەوەی فۆڕم
-                            </a>
-                            <a href="builder.html?id=${id}" class="btn-design-outline" title="دەستکاری دیزاین">
-                                <i class="fa-solid fa-wand-magic-sparkles"></i>
-                            </a>
-                        </div>
+                    <div class="project-actions">
+                        <a href="${viewLink}" target="_blank" class="btn-fill-adv">
+                            <i class="fa-solid fa-pen-to-square"></i> پڕکردنەوە
+                        </a>
+                        <a href="builder.html?id=${id}" class="btn-design-adv" title="دەستکاری دیزاین">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        </a>
+                    </div>
 
-                        <div class="utility-row">
-                            <button onclick="copyLink('${viewLink}')" class="util-btn" title="کۆپی لینک">
+                    <div class="project-footer">
+                        <a href="data.html?id=${id}" class="btn-data-adv">
+                            داتاکان <i class="fa-solid fa-arrow-left"></i>
+                        </a>
+                        <div class="util-btn-group">
+                            <button onclick="copyLink('${viewLink}')" class="util-btn-adv" title="کۆپی لینک">
                                 <i class="fa-regular fa-copy"></i>
                             </button>
-                            <button onclick="toggleProjectStatus('${id}', ${data.active !== false})" class="util-btn" title="${data.active !== false ? 'ڕاگرتن' : 'چالاککردن'}">
-                                <i class="fa-solid ${data.active !== false ? 'fa-pause' : 'fa-play'}"></i>
+                            <button onclick="toggleProjectStatus('${id}', ${isActive})" class="util-btn-adv" title="${isActive ? 'ڕاگرتن' : 'چالاککردن'}">
+                                <i class="fa-solid ${isActive ? 'fa-pause' : 'fa-play'}"></i>
                             </button>
-                            <button onclick="deleteForm('${id}')" class="util-btn delete" title="سڕینەوە">
+                            <button onclick="deleteForm('${id}')" class="util-btn-adv delete" title="سڕینەوە">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         </div>
                     </div>
-
-                    <a href="data.html?id=${id}" class="btn-view-data-footer">
-                        بینینی داتاکان <i class="fa-solid fa-arrow-left me-2"></i>
-                    </a>
-
                 </div>
             </div>
         `;

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ckb" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تەختەی بەڕێوەبردنی کەیسەکان</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        /* ڕێکخستنی سایدباری کۆمپیوتەر */
+        .sidebar-heading img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-heading img:hover {
+            transform: scale(1.05);
+        }
+
+        /* =========================================
+           دیزاینی مینیۆی مۆبایل بە ڕووناکی سوڕاوە (جێگیرکراو)
+           ========================================= */
+        @media (max-width: 991px) {
+            #page-content-wrapper {
+                padding-top: 100px !important;
+            }
+
+            @keyframes spinLight {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+
+            .modern-navbar {
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 2px;
+                border-radius: 52px;
+                position: fixed;
+                top: 15px;
+                left: 0;
+                right: 0;
+                margin-left: auto;
+                margin-right: auto;
+                z-index: 1050;
+                overflow: hidden;
+                transition: border-radius 0.3s ease;
+            }
+
+            .modern-navbar::before {
+                content: "";
+                position: absolute;
+                width: 200%;
+                height: 1500px;
+                top: 50%;
+                left: 50%;
+                margin-left: -100%;
+                margin-top: -750px;
+                background: conic-gradient(
+                    transparent 0%, 
+                    transparent 40%, 
+                    #ffffff 50%, 
+                    transparent 60%, 
+                    transparent 90%, 
+                    #ffffff 100% 
+                );
+                animation: spinLight 3s linear infinite;
+                z-index: -1;
+            }
+
+            .navbar-inner-bg {
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(15px);
+                -webkit-backdrop-filter: blur(15px);
+                border-radius: 50px;
+                width: 100%;
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: space-between;
+                padding: 8px 15px;
+                transition: border-radius 0.3s ease;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            }
+
+            body.dark-mode .navbar-inner-bg {
+                background: rgba(30, 41, 59, 0.95);
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            }
+
+            .modern-navbar.menu-open { border-radius: 22px; }
+            .modern-navbar.menu-open .navbar-inner-bg { border-radius: 20px; }
+
+            #navbarNav {
+                background: transparent;
+                border-radius: 0;
+                padding: 0;
+                box-shadow: none;
+                position: static;
+                margin-top: 10px;
+                width: 100%;
+            }
+
+            #navbarNav .navbar-nav { width: 100%; padding: 0 5px; }
+            #navbarNav .nav-item { width: 100%; margin-bottom: 8px; }
+            #navbarNav .nav-link {
+                width: 100%; 
+                text-align: center;
+                padding: 12px 15px;
+                background-color: #f8fafc; 
+                border-radius: 12px; 
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.3s ease;
+                border: 1px solid transparent;
+            }
+
+            #navbarNav .nav-link:hover { background-color: #f1f5f9; }
+            #navbarNav .nav-link.active {
+                background-color: rgba(3, 182, 247, 0.1);
+                border-color: rgba(3, 182, 247, 0.2);
+            }
+
+            body.dark-mode #navbarNav .nav-link { background-color: #334155; }
+            body.dark-mode #navbarNav .nav-link.active {
+                background-color: rgba(56, 189, 248, 0.15);
+                border-color: rgba(56, 189, 248, 0.3);
+            }
+        }
+
+        /* دیزاینی تابەکان */
+        .nav-tabs .nav-link {
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+        }
+
+        /* دیزاینی کارتەکان (بۆ ڕووناک) */
+        .case-card {
+            background: var(--card-bg, #ffffff);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: var(--shadow);
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn {
+            font-size: 0.85rem;
+            padding: 5px 10px;
+            margin: 2px;
+        }
+
+        /* =========================================
+           دیزاینە نوێیەکان بۆ کات و ڕێکەوت و ئاگاداری
+           ========================================= */
+        .time-tracking-box {
+            background: rgba(0, 0, 0, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        body.dark-mode .time-tracking-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* کارتی دواکەوتوو (٧ ڕۆژ زیاتر) */
+        .case-delayed-border {
+            border: 2px solid #ef4444 !important;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.2) !important;
+        }
+
+        .case-delayed-badge {
+            background-color: #ef4444;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            display: inline-block;
+            width: 100%;
+            text-align: center;
+            animation: pulseWarning 2s infinite;
+        }
+
+        @keyframes pulseWarning {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        /* =========================================
+           چارەسەری دۆخی تاریک بۆ خانەکان و کارتەکان
+           ========================================= */
+        body.dark-mode .case-card {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .case-card h6 {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode .case-card .border,
+        body.dark-mode .case-card .border-bottom {
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode input.form-control,
+        body.dark-mode select.form-select,
+        body.dark-mode textarea.form-control {
+            background-color: #0f172a !important;
+            border-color: #334155 !important;
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode input.form-control::placeholder,
+        body.dark-mode textarea.form-control::placeholder {
+            color: #64748b !important;
+        }
+
+        body.dark-mode input.form-control:focus,
+        body.dark-mode select.form-select:focus,
+        body.dark-mode textarea.form-control:focus {
+            border-color: #38bdf8 !important;
+            box-shadow: 0 0 0 0.25rem rgba(56, 189, 248, 0.25) !important;
+        }
+
+        body.dark-mode .bg-light {
+            background-color: #0f172a !important;
+        }
+
+        /* =========================================
+           گۆڕینی ڕەنگی ڕووناکی مینیۆکە
+           ========================================= */
+        @media (max-width: 991px) {
+            .modern-navbar::before {
+                background: conic-gradient(
+                    transparent 0%, 
+                    transparent 40%, 
+                    #03b6f7 50%, 
+                    transparent 60%, 
+                    transparent 90%, 
+                    #03b6f7 100% 
+                ) !important;
+            }
+
+            body.dark-mode .modern-navbar::before {
+                background: conic-gradient(
+                    transparent 0%, 
+                    transparent 40%, 
+                    #ffffff 50%, 
+                    transparent 60%, 
+                    transparent 90%, 
+                    #ffffff 100% 
+                ) !important;
+            }
+        }
+
+        /* =========================================
+   دیزاینی هێڵەکانی کات (Days Tracker)
+   ========================================= */
+.tracker-line {
+    width: 14px;
+    height: 5px;
+    border-radius: 3px;
+    background-color: #e2e8f0; /* ڕەنگی هێڵی بەتاڵ (ڕۆژە ڕۆیشتووەکان) */
+    transition: all 0.3s ease;
+}
+
+.tracker-line.active { background-color: #10b981; } /* سەوز بۆ کاتی ئاسایی */
+.tracker-line.warning { background-color: #f59e0b; } /* پرتەقاڵی بۆ کاتی کەم */
+
+body.dark-mode .tracker-line { background-color: #334155; }
+body.dark-mode .tracker-line.active { background-color: #10b981; }
+body.dark-mode .tracker-line.warning { background-color: #f59e0b; }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar modern-navbar mx-auto d-lg-none" style="max-width: 92%;">
+        <div class="navbar-inner-bg">
+            <a class="navbar-brand d-flex align-items-center m-0" href="index.html">
+                <img src="logo3.png" alt="MROVDOSTAN" height="38" style="object-fit: contain;">
+            </a>
+            <button class="navbar-toggler border-0 shadow-none p-0" type="button" id="mobileMenuToggler">
+                <i class="fa-solid fa-bars-staggered fa-lg text-primary"></i>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav align-items-center w-100 pt-3">
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold text-info" href="#" onclick="showComingSoonAlert(event)">
+                            <i class="fa-regular fa-circle-user me-2"></i> پــــــڕۆفایــــــل
+                        </a>
+                    </li>
+
+                    <li class="nav-item border-top pt-2 mt-1 w-100">
+                        <a class="nav-link fw-bold" href="index.html">
+                            <i class="fa-solid fa-house me-2"></i> ســــــەرەکــــــی
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold active text-primary" href="aid-board.html">
+                            <i class="fa-solid fa-hand-holding-heart me-2"></i> کەیســــی نــــوێ
+                        </a>
+                    </li>
+                    <li class="nav-item d-none" id="navSettingsMobileLi">
+                        <a class="nav-link fw-bold" href="settings.html">
+                            <i class="fa-solid fa-gear me-2"></i> ســـــــێتینـــــــگ
+                        </a>
+                    </li>
+                            
+                    <li class="nav-item border-top pt-2 mt-1 w-100">
+                        <a class="nav-link fw-bold text-secondary dark-mode-toggle" href="#">
+                            <i class="fa-solid fa-moon me-2 dark-mode-icon"></i> دۆخــــی تاریــــک
+                        </a>
+                    </li>
+
+                    <li class="nav-item border-top pt-2 mt-1 w-100">
+                        <a class="nav-link fw-bold text-danger" href="#" onclick="logout()">
+                            <i class="fa-solid fa-right-from-bracket me-2"></i> دەرچــــــــــــوون
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+
+    <div id="wrapper">
+        <div id="sidebar-wrapper" class="d-none d-lg-block">
+            <div class="d-flex justify-content-between align-items-center mb-4 p-3">
+                <div class="sidebar-heading w-100">
+                    <img src="logo.jpg" alt="MROVDOSTAN">
+                    <span class="brand-text">MROVDOSTAN</span>
+                </div>
+            </div>
+
+            <div class="d-flex flex-column gap-2">
+                <a href="#" class="mobile-nav-item text-info mb-2" onclick="showComingSoonAlert(event)">
+                    <i class="fa-regular fa-circle-user"></i> <span>پڕۆفایل</span>
+                </a>
+
+                <a href="index.html" class="mobile-nav-item border-top pt-3">
+                    <i class="fa-solid fa-house"></i> <span>سەرەکی</span>
+                </a>
+
+                <a href="aid-board.html" class="mobile-nav-item active">
+                    <i class="fa-solid fa-hand-holding-heart"></i> <span>کەیسی نوێ</span>
+                </a>
+
+                <a href="settings.html" class="mobile-nav-item d-none" id="navSettingsSidebar">
+                    <i class="fa-solid fa-gear"></i> <span>سێتینگ</span>
+                </a>
+
+                <a href="#" class="mobile-nav-item text-secondary mt-5 dark-mode-toggle">
+                    <i class="fa-solid fa-moon dark-mode-icon"></i> <span>دۆخی تاریک</span>
+                </a>
+
+                <a href="#" onclick="logout()" class="mobile-nav-item text-danger mt-2 border-top pt-3">
+                    <i class="fa-solid fa-right-from-bracket"></i> <span>دەرچوون</span>
+                </a>
+            </div>
+        </div>
+
+
+        <div id="page-content-wrapper" class="w-100 p-4 pt-lg-5">
+
+            <nav class="navbar navbar-expand-lg navbar-light bg-transparent mb-4 border-bottom pb-3 d-none d-lg-flex">
+                <div class="container-fluid px-0 d-flex justify-content-between align-items-center">
+                    <h4 class="fw-bold m-0 text-primary"><i class="fa-solid fa-users me-2"></i> بەڕێوەبردنی کەیسەکان
+                    </h4>
+                    <a href="aid-archive.html" class="btn btn-warning text-dark fw-bold rounded-pill shadow-sm"><i
+                            class="fa-solid fa-box-archive me-1"></i> ئەرشیف</a>
+                </div>
+            </nav>
+
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3 d-lg-none">
+                <h4 class="fw-bold m-0 text-primary fs-5"><i class="fa-solid fa-users me-2"></i> کەیسەکان</h4>
+                <a href="aid-archive.html" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill shadow-sm"><i
+                        class="fa-solid fa-box-archive me-1"></i> ئەرشیف</a>
+            </div>
+
+            <ul class="nav nav-tabs mb-4 border-0" id="boardTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active rounded-pill px-4" id="fill-tab" data-bs-toggle="tab"
+                        data-bs-target="#fill" type="button" role="tab"><i class="fa-solid fa-pen-to-square me-1"></i>
+                        پڕکردنەوە</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill px-4" id="distribute-tab" data-bs-toggle="tab"
+                        data-bs-target="#distribute" type="button" role="tab"><i
+                            class="fa-solid fa-share-nodes me-1"></i> دابەشکردن</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill px-4" id="categories-tab" data-bs-toggle="tab"
+                        data-bs-target="#categories" type="button" role="tab"><i
+                            class="fa-solid fa-layer-group me-1"></i> بەشەکان</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="boardTabsContent">
+                <div class="tab-pane fade show active" id="fill" role="tabpanel">
+                    <div class="case-card mx-auto" style="max-width: 600px;">
+                        <h5 class="mb-4 fw-bold text-center">تۆمارکردنی کەیسی نوێ</h5>
+                        <form id="newCaseForm">
+                            <div id="dynamicFormFields">
+                                <div class="text-center text-muted"><i class="fa-solid fa-spinner fa-spin"></i>
+                                    چاوەڕوانبە...</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 mt-4 rounded-pill py-2"><i
+                                    class="fa-solid fa-paper-plane me-2"></i> ناردن بۆ دابەشکردن</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="distribute" role="tabpanel">
+                    <div class="row" id="distributionList">
+                        <div class="text-center text-muted w-100 mt-5"><i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="categories" role="tabpanel">
+                    
+                    <div id="categories-view" class="container-fluid p-0">
+                        <div class="row g-3" id="categories-list-container">
+                            <div class="text-center text-muted w-100 mt-5"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>
+                        </div>
+                    </div>
+
+                    <div id="cases-view" class="container-fluid p-0 d-none">
+                        <div class="d-flex justify-content-between align-items-center mb-4 bg-light p-3 rounded shadow-sm">
+                            <h5 id="current-category-title" class="fw-bold text-primary m-0">ناوی بەش</h5>
+                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="showCategoriesView()">
+                                <i class="fa-solid fa-arrow-right me-1"></i> گەڕانەوە
+                            </button>
+                        </div>
+                        
+                        <div class="row g-3" id="category-cases-container">
+                            </div>
+                    </div>
+
+                </div>
+                </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/dark-mode.js"></script>
+    <script src="js/aid-board.js"></script>
+
+    <script>
+        function showComingSoonAlert(e) {
+            e.preventDefault(); 
+            Swal.fire({
+                icon: 'info',
+                title: 'بەم زووانە...',
+                text: 'بەشی پڕۆفایل لە نوێکردنەوەکانی داهاتوودا چالاک دەکرێت.',
+                confirmButtonText: 'باشە',
+                confirmButtonColor: '#38bdf8'
+            });
+        }
+
+        function updateDarkIcons(iconClass) {
+            document.querySelectorAll('.dark-mode-icon').forEach(icon => {
+                icon.classList.remove('fa-moon', 'fa-sun');
+                icon.classList.add(iconClass);
+            });
+        }
+
+        document.querySelectorAll('.dark-mode-toggle').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (document.body.classList.contains('dark-mode')) {
+                    document.body.classList.remove('dark-mode');
+                    localStorage.setItem('theme', 'light');
+                    updateDarkIcons('fa-moon');
+                } else {
+                    document.body.classList.add('dark-mode');
+                    localStorage.setItem('theme', 'dark');
+                    updateDarkIcons('fa-sun');
+                }
+            });
+        });
+
+        if (localStorage.getItem('theme') === 'dark' || document.body.classList.contains('dark-mode')) {
+            updateDarkIcons('fa-sun');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggleBtn = document.getElementById('mobileMenuToggler');
+            const navMenu = document.getElementById('navbarNav');
+            const navbar = document.querySelector('.modern-navbar');
+
+            if (toggleBtn && navMenu && navbar) {
+                toggleBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navMenu.classList.toggle('show');
+                    navbar.classList.toggle('menu-open');
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (navMenu.classList.contains('show') && !navMenu.contains(e.target) && !toggleBtn.contains(e.target)) {
+                        navMenu.classList.remove('show');
+                        navbar.classList.remove('menu-open');
+                    }
+                });
+            }
+        });
+    </script>
+
+</body>
+
+</html>

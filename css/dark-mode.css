@@ -4,31 +4,58 @@
    1. ڕێکخستنی بنچینەیی (Global Reset)
    ========================================= */
 body.dark-mode {
-    background-color: #0f172a !important; /* Slate 900 */
+    background-color: #0f172a !important;
+    /* Slate 900 */
     color: #f1f5f9 !important;
 }
 
 /* هەموو نووسینەکان دەکەین بە سپی */
-body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, 
-body.dark-mode h4, body.dark-mode h5, body.dark-mode h6,
-body.dark-mode p, body.dark-mode span, body.dark-mode div, 
-body.dark-mode li, body.dark-mode label, body.dark-mode strong, 
-body.dark-mode b, body.dark-mode td, body.dark-mode th,
-body.dark-mode .text-dark, body.dark-mode .fw-bold {
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6,
+body.dark-mode p,
+body.dark-mode span,
+body.dark-mode div,
+body.dark-mode li,
+body.dark-mode label,
+body.dark-mode strong,
+body.dark-mode b,
+body.dark-mode td,
+body.dark-mode th,
+body.dark-mode .text-dark,
+body.dark-mode .fw-bold {
     color: #f1f5f9 !important;
 }
 
-body.dark-mode .text-muted { color: #94a3b8 !important; }
-body.dark-mode .text-primary { color: #38bdf8 !important; }
-body.dark-mode .text-danger { color: #f87171 !important; }
-body.dark-mode .text-success { color: #4ade80 !important; }
-body.dark-mode .small { color: #cbd5e1 !important; }
+body.dark-mode .text-muted {
+    color: #94a3b8 !important;
+}
+
+body.dark-mode .text-primary {
+    color: #38bdf8 !important;
+}
+
+body.dark-mode .text-danger {
+    color: #f87171 !important;
+}
+
+body.dark-mode .text-success {
+    color: #4ade80 !important;
+}
+
+body.dark-mode .small {
+    color: #cbd5e1 !important;
+}
 
 /* =========================================
    2. سایدبار (Sidebar) - نوێکراوە
    ========================================= */
 body.dark-mode #sidebar-wrapper {
-    background-color: #020617 !important; /* Slate 950 */
+    background-color: #020617 !important;
+    /* Slate 950 */
     border-left: 1px solid #1e293b !important;
     box-shadow: 5px 0 15px rgba(0, 0, 0, 0.5) !important;
 }
@@ -42,7 +69,7 @@ body.dark-mode .sidebar-heading span {
 }
 
 body.dark-mode .sidebar-heading img {
-    filter: drop-shadow(0 0 5px rgba(255,255,255,0.2));
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.2));
 }
 
 body.dark-mode .sidebar-heading {
@@ -88,8 +115,8 @@ body.dark-mode .shadow-sm {
     box-shadow: none !important;
 }
 
-body.dark-mode .border, 
-body.dark-mode .border-top, 
+body.dark-mode .border,
+body.dark-mode .border-top,
 body.dark-mode .border-bottom {
     border-color: #334155 !important;
 }
@@ -111,7 +138,11 @@ body.dark-mode .form-check-input {
     border: 1px solid #475569 !important;
     color: #fff !important;
 }
-body.dark-mode input::placeholder { color: #64748b !important; }
+
+body.dark-mode input::placeholder {
+    color: #64748b !important;
+}
+
 body.dark-mode .input-group-text {
     background-color: #1e293b !important;
     border-color: #475569 !important;
@@ -119,12 +150,13 @@ body.dark-mode .input-group-text {
 }
 
 /* دوگمەکان */
-body.dark-mode .btn-white, 
+body.dark-mode .btn-white,
 body.dark-mode .btn-light {
     background-color: #1e293b !important;
     border-color: #475569 !important;
     color: #fff !important;
 }
+
 body.dark-mode .btn-white:hover {
     background-color: #334155 !important;
 }
@@ -136,23 +168,28 @@ body.dark-mode .table-responsive {
     background-color: #1e293b !important;
     border: 1px solid #334155 !important;
 }
+
 body.dark-mode .table {
     --bs-table-bg: transparent !important;
     border-color: #334155 !important;
     color: #f1f5f9 !important;
 }
+
 body.dark-mode .table thead th {
     background-color: #0f172a !important;
     color: #38bdf8 !important;
     border-bottom: 2px solid #334155 !important;
 }
+
 body.dark-mode .table tbody td {
     background-color: #1e293b !important;
     border-bottom: 1px solid #334155 !important;
 }
+
 body.dark-mode .table-hover tbody tr:hover td {
     background-color: #334155 !important;
 }
+
 body.dark-mode .column-search {
     background-color: #0f172a !important;
     color: #fff !important;
@@ -166,36 +203,48 @@ body.dark-mode #form-canvas {
     background-color: #0f172a !important;
     border: 2px dashed #475569 !important;
 }
-body.dark-mode #empty-msg i { opacity: 0.3 !important; color: #fff !important; }
+
+body.dark-mode #empty-msg i {
+    opacity: 0.3 !important;
+    color: #fff !important;
+}
+
 body.dark-mode .toolbox-item {
     background-color: #1e293b !important;
     border: 1px solid #334155 !important;
     color: #e2e8f0 !important;
 }
+
 body.dark-mode .toolbox-item:hover {
     background-color: #334155 !important;
     border-color: #38bdf8 !important;
     color: #fff !important;
 }
-body.dark-mode .toolbox-item i { color: #38bdf8 !important; }
 
-body.dark-mode .form-field, 
+body.dark-mode .toolbox-item i {
+    color: #38bdf8 !important;
+}
+
+body.dark-mode .form-field,
 body.dark-mode .form-element {
     background-color: #1e293b !important;
     border: 1px solid #475569 !important;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
     margin-bottom: 15px !important;
 }
+
 body.dark-mode .editable-label {
     background-color: transparent !important;
     color: #38bdf8 !important;
     border-bottom: 1px dashed #475569 !important;
 }
+
 body.dark-mode .option-tag {
     background-color: #0f172a !important;
     border: 1px solid #334155 !important;
     color: #cbd5e1 !important;
 }
+
 body.dark-mode .condition-zone {
     background-color: rgba(56, 189, 248, 0.05) !important;
     border: 1px dashed #334155 !important;
@@ -209,14 +258,17 @@ body.dark-mode .btn-view-data-footer {
     color: #38bdf8 !important;
     border-top: 1px solid #334155 !important;
 }
+
 body.dark-mode .btn-view-data-footer:hover {
     background-color: #020617 !important;
 }
+
 body.dark-mode .btn-design-outline {
     background-color: transparent !important;
     border-color: #475569 !important;
     color: #cbd5e1 !important;
 }
+
 body.dark-mode div.swal2-popup {
     background: #1e293b !important;
     color: #f1f5f9 !important;
@@ -237,6 +289,7 @@ body.dark-mode .modern-header {
     background-color: #1e293b !important;
     border-bottom: 1px solid #334155 !important;
 }
+
 body.dark-mode .header-icon-box {
     background-color: #0f172a !important;
     border-color: #334155 !important;
@@ -249,6 +302,7 @@ body.dark-mode h1.modern-title {
     color: #ffffff !important;
     text-shadow: none !important;
 }
+
 body.dark-mode .modern-subtitle {
     color: #94a3b8 !important;
     border-color: #334155 !important;
@@ -260,11 +314,13 @@ body.dark-mode canvas {
     filter: invert(1) hue-rotate(180deg);
     background-color: #fff !important;
 }
+
 body.dark-mode .btn-submit {
     background-color: #38bdf8 !important;
     color: #0f172a !important;
     font-weight: bold !important;
 }
+
 body.dark-mode .opacity-50 {
     opacity: 0.3 !important;
     color: #64748b !important;
@@ -277,9 +333,11 @@ body.dark-mode #sidebar-wrapper .sidebar-heading * {
     color: #ffffff !important;
     fill: #ffffff !important;
 }
+
 body.dark-mode .brand-text {
     color: #ffffff !important;
 }
+
 body.dark-mode a.sidebar-heading {
     color: #ffffff !important;
 }
@@ -288,9 +346,10 @@ body.dark-mode a.sidebar-heading {
    10. کۆدی زیرەک (Smart Mobile Switching)
    ========================================= */
 @media (max-width: 768px) {
+
     /* دۆخی ئاسایی (ڕووناک) */
     #sidebar-wrapper .brand-text {
-        color: #0f172a !important; 
+        color: #0f172a !important;
         -webkit-text-fill-color: #0f172a !important;
         text-shadow: none !important;
     }
@@ -301,4 +360,108 @@ body.dark-mode a.sidebar-heading {
         -webkit-text-fill-color: #ffffff !important;
         text-shadow: 0 0 10px rgba(255, 255, 255, 0.4) !important;
     }
+}
+
+/* =========================================
+   DIZAYNI NWÊ - ELEGANT DARK MODE (لەگەڵ ڕەنگە تایبەتەکان)
+   ========================================= */
+body.dark-mode .project-card-elegant {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    border-top: 4px solid var(--card-color) !important;
+    /* پاراستنی هێڵە ڕەنگاوڕەنگەکەی سەرەوە */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2) !important;
+}
+
+body.dark-mode .project-card-elegant:hover {
+    border-color: var(--card-color) !important;
+    /* چوارچێوەکە هەمووی ڕەنگاوڕەنگ دەبێت */
+    box-shadow: 0 10px 20px -5px var(--card-color) !important;
+    /* سێبەری درەوشاوە بەپێی ڕەنگەکە */
+}
+
+/* ڕێکخستنی ئایکۆن بەپێی ڕەنگی پڕۆژەکە لە دۆخی تاریک */
+body.dark-mode .elegant-icon {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+    color: var(--card-color) !important;
+}
+
+/* ڕێکخستنی نووسینەکان */
+body.dark-mode .elegant-title {
+    color: #f8fafc !important;
+}
+
+body.dark-mode .elegant-date {
+    color: #94a3b8 !important;
+}
+
+/* دوگمەی سەرەکی (پڕکردنەوە) لە دۆخی تاریکدا دەبێت ڕەنگی پڕۆژەکە وەربگرێت */
+body.dark-mode .fill-btn {
+    background-color: var(--card-color) !important;
+    border-color: var(--card-color) !important;
+    color: #0f172a !important;
+    /* ڕەنگی نووسینی ناو دوگمەکە (تاریک با باشتر دەربکەوێت) */
+}
+
+body.dark-mode .fill-btn:hover {
+    filter: brightness(1.2) !important;
+}
+
+/* دوگمەی داتاکان */
+body.dark-mode .data-btn {
+    background: #0f172a !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
+}
+
+body.dark-mode .data-btn:hover {
+    background: #334155 !important;
+    color: #fff !important;
+}
+
+/* تووڵەکانی خوارەوە */
+body.dark-mode .elegant-actions-secondary {
+    border-top-color: #334155 !important;
+}
+
+body.dark-mode .elegant-btn-icon {
+    color: #cbd5e1 !important;
+}
+
+body.dark-mode .elegant-btn-icon:hover {
+    background: #334155 !important;
+    color: #fff !important;
+    border-color: #475569 !important;
+}
+
+body.dark-mode .elegant-btn-icon.delete:hover {
+    background: rgba(239, 68, 68, 0.15) !important;
+    color: #f87171 !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+/* باجی دۆخ */
+body.dark-mode .elegant-status.active {
+    background: rgba(16, 185, 129, 0.1) !important;
+    color: #34d399 !important;
+    border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+body.dark-mode .elegant-status.paused {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #f87171 !important;
+    border-color: rgba(239, 68, 68, 0.2) !important;
+}
+
+/* =========================================
+   دیزاینی لقەکان (Branches) بۆ دۆخی تاریک
+   ========================================= */
+body.dark-mode .branch-group {
+    background-color: #1e293b !important; /* ڕەنگێکی تاریکی گونجاو لەگەڵ کارتەکان */
+    border-color: #38bdf8 !important; /* گۆڕینی ڕەنگی هێڵەکە بۆ شینێکی ڕووناکتر */
+}
+
+body.dark-mode .branch-header {
+    color: #000000 !important; /* گۆڕینی ڕەنگی نووسینی "پەیوەست بە..." بۆ شینێکی کراوە */
 }

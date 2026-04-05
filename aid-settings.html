@@ -4,84 +4,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سیستەمی فۆڕمەکان</title>
+    <title>ڕێکخستنی سیستەمی دابەشکردن</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
-
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/dark-mode.css">
-    <link rel="stylesheet" href="css/print-style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
     <style>
-        /* Custom Table Styles */
-        .table thead th {
-            background-color: #f8f9fa;
-            color: #64748b;
-            font-weight: 700;
-            border-bottom: 2px solid #e2e8f0;
-            white-space: nowrap;
-            vertical-align: middle;
-        }
-
-        body.dark-mode .table thead th {
-            background-color: #1e293b;
-            color: #cbd5e1;
-            border-color: #334155;
-        }
-
-        .column-search {
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            padding: 5px 10px;
-            font-size: 0.85rem;
-            transition: all 0.2s;
-            min-width: 120px;
-        }
-
-        body.dark-mode .column-search {
-            background-color: #0f172a;
-            border-color: #334155;
-            color: #f1f5f9;
-        }
-
-        .column-search:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-            outline: none;
-        }
-
-        .data-img {
-            width: 45px;
-            height: 45px;
-            border-radius: 12px;
-            object-fit: cover;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .clickable-row {
-            cursor: pointer;
-            transition: background 0.1s;
-        }
-
-        .clickable-row:hover {
-            background-color: #f8fafc;
-        }
-
-        body.dark-mode .clickable-row:hover {
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-
         /* ڕێکخستنی سایدباری کۆمپیوتەر */
         .sidebar-heading img {
             width: 80px;
@@ -232,6 +168,106 @@
             }
         }
 
+        /* ستایلی دروستکەری فۆڕم */
+        .toolbox-item {
+            background: var(--card-bg);
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            cursor: grab;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .toolbox-item:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .toolbox-item i {
+            margin-left: 8px;
+            width: 20px;
+            text-align: center;
+        }
+
+        body.dark-mode .toolbox-item {
+            border-color: #334155;
+        }
+
+        #form-canvas {
+            min-height: 400px;
+            background: rgba(0, 0, 0, 0.02);
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        body.dark-mode #form-canvas {
+            background: rgba(255, 255, 255, 0.02);
+            border-color: #334155;
+        }
+
+        .form-element {
+            background: var(--card-bg);
+            border: 1px solid #e2e8f0;
+            border-right: 4px solid var(--primary);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        body.dark-mode .form-element {
+            border-color: #334155;
+            border-right-color: var(--primary);
+        }
+
+        .nested-container {
+            min-height: 60px;
+            background: rgba(0, 0, 0, 0.03);
+            border: 1px dashed #94a3b8;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        body.dark-mode .nested-container {
+            background: rgba(0, 0, 0, 0.2);
+            border-color: #475569;
+        }
+
+        .element-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            cursor: grab;
+        }
+
+        .element-actions button {
+            background: none;
+            border: none;
+            color: #f87171;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .form-control-custom {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 6px 10px;
+            width: 100%;
+            margin-top: 5px;
+            background: transparent;
+            color: inherit;
+        }
+
+        body.dark-mode .form-control-custom {
+            border-color: #475569;
+        }
+
         /* =========================================
            گۆڕینی ڕەنگی ڕووناکی مینیۆکە
            ========================================= */
@@ -293,7 +329,7 @@
                         </a>
                     </li>
                     <li class="nav-item d-none" id="navSettingsMobileLi">
-                        <a class="nav-link fw-bold" href="settings.html">
+                        <a class="nav-link fw-bold active text-primary" href="settings.html">
                             <i class="fa-solid fa-gear me-2"></i> ســـــــێتینـــــــگ
                         </a>
                     </li>
@@ -333,19 +369,13 @@
                     <i class="fa-solid fa-house"></i> <span>سەرەکی</span>
                 </a>
 
-                <a href="aid-board.html" class="mobile-nav-item" id="navAidBoard">
+                <a href="aid-board.html" class="mobile-nav-item">
                     <i class="fa-solid fa-hand-holding-heart"></i> <span>کەیسی نوێ</span>
                 </a>
 
-                <a href="settings.html" id="navSettingsSidebar" class="mobile-nav-item d-none">
+                <a href="settings.html" class="mobile-nav-item active" id="navSettingsSidebar">
                     <i class="fa-solid fa-gear"></i> <span>سێتینگ</span>
                 </a>
-
-                <div class="mt-3 px-3 border-top pt-3">
-                    <div class="text-uppercase fw-bold text-muted" style="font-size: 0.7rem; letter-spacing: 1px;">
-                        پڕۆژەی ئێستا</div>
-                    <div class="text-primary fw-bold mt-1" id="formTitleSidebar" style="font-size: 1.1rem;">...</div>
-                </div>
 
                 <a href="#" class="mobile-nav-item text-secondary mt-5 dark-mode-toggle">
                     <i class="fa-solid fa-moon dark-mode-icon"></i> <span>دۆخی تاریک</span>
@@ -357,135 +387,147 @@
             </div>
         </div>
 
-        <div id="page-content-wrapper" class="w-100 p-4">
 
-            <div
-                class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 mb-4">
-                <div>
-                    <h4 class="fw-bold m-0 text-dark">داتای: <span id="formTitle" class="text-primary">...</span></h4>
-                    <span class="text-muted small">ژمارەی دراوەکان: <span id="displayedCount"
-                            class="fw-bold text-primary">0</span></span>
+        <div id="page-content-wrapper" class="w-100 p-4 pt-lg-5">
+
+            <nav class="navbar navbar-expand-lg navbar-light bg-transparent mb-4 border-bottom pb-3 d-none d-lg-flex">
+                <div class="container-fluid px-0 d-flex justify-content-between align-items-center">
+                    <h4 class="fw-bold m-0 text-primary"><i class="fa-solid fa-cogs me-2"></i> سێتینگی دابەشکردن</h4>
+                    <a href="settings.html" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-arrow-right"></i> گەڕانەوە بۆ سێتینگ
+                    </a>
+                </div>
+            </nav>
+
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3 d-lg-none">
+                <h4 class="fw-bold m-0 text-primary fs-5"><i class="fa-solid fa-cogs me-2"></i> سێتینگی دابەشکردن</h4>
+                <a href="settings.html" class="btn btn-sm btn-outline-secondary">
+                    <i class="fa-solid fa-arrow-right"></i> گەڕانەوە
+                </a>
+            </div>
+
+            <ul class="nav nav-pills mb-4 gap-2" id="aid-settings-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold px-4 py-2 shadow-sm" id="tab-categories"
+                        data-bs-toggle="pill" data-bs-target="#content-categories" type="button" role="tab">
+                        <i class="fa-solid fa-layer-group me-2"></i> جۆری بەشەکان
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold px-4 py-2 shadow-sm" id="tab-designer" data-bs-toggle="pill"
+                        data-bs-target="#content-designer" type="button" role="tab">
+                        <i class="fa-solid fa-pen-ruler me-2"></i> دیزاینکردنی فۆڕمی کەیسەکان
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="aid-settings-tabContent">
+
+                <div class="tab-pane fade show active" id="content-categories" role="tabpanel">
+                    <div class="row">
+                        <div class="col-lg-8 mx-auto">
+                            <div class="modern-card p-4">
+                                <h5 class="fw-bold mb-3"><i class="fa-solid fa-layer-group text-primary me-2"></i> جۆری
+                                    بەشەکان</h5>
+                                <p class="text-muted small">ئەو بەشانە زیاد بکە کە کەیسەکانی بۆ دابەش دەکرێت، لەگەڵ ڕەنگێک بۆ جیاکردنەوەیان. دەتوانیت بە ڕاکێشان ڕیزبەندییان بگۆڕیت.</p>
+                                <div class="input-group mb-4">
+                                    <input type="color" id="catColor" class="form-control form-control-color px-1 border-end-0" value="#03b6f7" title="ڕەنگی بەش هەڵبژێرە" style="max-width: 50px;">
+                                    <input type="text" id="catName" class="form-control"
+                                        placeholder="ناوی بەشەکە بنووسە... (نموونە: بەشی بێ باوکان)">
+                                    <button class="btn btn-primary px-4" onclick="addCategory()">
+                                        <i class="fa-solid fa-plus"></i> زیادکردن
+                                    </button>
+                                </div>
+                                <div class="row g-3" id="categoriesListContainer"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="d-flex gap-2 flex-wrap w-100 w-lg-auto justify-content-start justify-content-lg-end">
-                    <input type="file" id="importExcelInput" hidden accept=".xlsx, .xls"
-                        onchange="handleExcelImport(this)">
+                <div class="tab-pane fade" id="content-designer" role="tabpanel">
+                    <div class="modern-card p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                            <h5 class="fw-bold m-0"><i class="fa-solid fa-pen-ruler text-primary me-2"></i> دروستکەری
+                                فۆڕم بە شێوازی ڕاکێشان</h5>
+                            <button class="btn btn-success px-4 fw-bold" onclick="saveAidForm()">
+                                <i class="fa-solid fa-floppy-disk me-2"></i> پاشەکەوتکردنی فۆڕم
+                            </button>
+                        </div>
 
-                    <button id="importExcelBtn" onclick="document.getElementById('importExcelInput').click()"
-                        class="btn btn-warning text-dark shadow-sm animate-up d-none">
-                        <i class="fa-solid fa-file-import"></i>
-                        <span class="d-none d-sm-inline ms-1">Import</span>
-                    </button>
+                        <div class="row g-4">
+                            <div class="col-lg-3">
+                                <div class="p-3 sticky-top rounded border"
+                                    style="top: 20px; background: rgba(0,0,0,0.02);">
+                                    <h6 class="fw-bold mb-3 text-muted border-bottom pb-2">جۆری خانەکان</h6>
+                                    <div id="toolbox">
+                                        <div class="toolbox-item" data-type="text"><i
+                                                class="fa-solid fa-font text-primary"></i> دەقی کورت</div>
+                                        <div class="toolbox-item" data-type="number"><i
+                                                class="fa-solid fa-hashtag text-success"></i> ژمارە</div>
+                                        <div class="toolbox-item" data-type="textarea"><i
+                                                class="fa-solid fa-align-right text-warning"></i> دەقی درێژ (تێبینی)
+                                        </div>
+                                        <div class="toolbox-item" data-type="date"><i
+                                                class="fa-regular fa-calendar text-info"></i> بەروار</div>
+                                        <div class="toolbox-item border-primary" data-type="select_one"><i
+                                                class="fa-regular fa-caret-square-down text-danger"></i> هەڵبژاردن (بۆ
+                                            لقەکان)</div>
+                                        <div class="toolbox-item border-primary" data-type="select_multiple"><i
+                                                class="fa-solid fa-list-check text-secondary"></i> فرە هەڵبژاردن (Checkbox)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-                    <button id="excelExportBtn" onclick="exportToExcel()"
-                        class="btn btn-success text-white shadow-sm animate-up d-none">
-                        <i class="fa-solid fa-file-excel"></i>
-                        <span class="d-none d-sm-inline ms-1">Excel</span>
-                    </button>
+                            <div class="col-lg-9">
+                                <div id="form-canvas">
+                                    <div class="text-center text-muted mt-5" id="empty-msg">
+                                        <i class="fa-solid fa-layer-group fa-3x mb-3 opacity-25"></i>
+                                        <p>خانەکان لە لای ڕاستەوە ڕابکێشە بۆ ئێرە...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                    <button id="bulkDeleteBtn" onclick="deleteSelected()"
-                        class="btn btn-danger text-white shadow-sm d-none animate-up">
-                        <i class="fa-solid fa-trash"></i>
-                        <span class="d-none d-sm-inline ms-1">سڕینەوە</span> (<span id="selectedCount">0</span>)
-                    </button>
+            </div>
+        </div>
+    </div>
 
-                    <div class="dropdown ms-auto ms-lg-0">
-                        <button
-                            class="btn btn-white bg-white border shadow-sm dropdown-toggle d-flex align-items-center gap-2 px-3 py-2"
-                            type="button" data-bs-toggle="dropdown" style="white-space: nowrap;">
-                            <i class="fa-solid fa-table-columns text-primary"></i>
-                            <span class="d-none d-sm-inline">ستوونەکان</span>
+    <div class="modal fade" id="optionsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-list-check text-primary me-2"></i> ڕێکخستنی هەڵبژاردنەکان</h5>
+                    <button type="button" class="btn-close m-0 p-0 fs-5" data-bs-dismiss="modal" aria-label="Close" style="margin-right: auto !important; margin-left: 0 !important;"></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <label class="form-label fw-bold">هەڵبژاردنی نوێ:</label>
+                    <div class="input-group mb-4 shadow-sm">
+                        <input type="text" id="newOptionInput" class="form-control" placeholder="هەڵبژاردنەکە بنووسە و Enter بکە">
+                        <button class="btn btn-primary px-4" type="button" onclick="addOptionToUI()">
+                            <i class="fa-solid fa-plus"></i>
                         </button>
-                        <div class="dropdown-menu shadow border-0 p-3" id="columnToggleMenu"
-                            style="max-height: 300px; overflow-y: auto;"></div>
                     </div>
+                    
+                    <label class="form-label fw-bold mb-2">لیستی هەڵبژاردنەکان (دەتوانیت ڕیزبەندییان بگۆڕیت):</label>
+                    <ul id="optionsListUI" class="list-group list-group-flush border rounded shadow-sm bg-white" style="min-height: 80px;">
+                        </ul>
                 </div>
-            </div>
-
-            <div class="modern-card p-0 overflow-hidden shadow-sm">
-                <div class="table-responsive" style="min-height: 400px;">
-                    <table class="table table-hover mb-0 align-middle" id="dataTable">
-                        <thead>
-                            <tr id="tableHead"></tr>
-                        </thead>
-                        <tbody id="tableBody">
-                            <tr id="initialLoader">
-                                <td colspan="10" class="text-center py-5 text-muted">
-                                    <div class="spinner-border text-primary mb-3" role="status"></div>
-                                    <h6 class="fw-bold">خەریکە داتاکان دەهێنرێن...</h6>
-                                    <small>تکایە چاوەڕوان بە</small>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="text-center p-3 bg-light border-top">
-                    <button id="loadMoreBtn" onclick="loadMoreData()" class="btn btn-outline-primary px-4 d-none">
-                        <i class="fa-solid fa-circle-arrow-down me-2"></i> زیاتر ببینە (٥٠ی تر)
-                    </button>
-                    <div id="loadingMoreSpinner" class="spinner-border text-primary d-none" role="status"></div>
-                    <p id="noMoreDataMsg" class="text-muted small m-0 d-none">گەیشتیتە کۆتایی لیستەکە</p>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <div class="modal fade" id="detailModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">وردەکاری زانیاری</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4" id="modalContent"></div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-outline-dark" onclick="printData('print')">
-                        <i class="fa-solid fa-print me-2"></i> پرێنت
-                    </button>
-                    <button type="button" class="btn btn-outline-danger" onclick="printData('pdf')">
-                        <i class="fa-regular fa-file-pdf me-2"></i> PDF
-                    </button>
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">داخستن</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="editModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-warning">
-                    <h5 class="modal-title fw-bold">دەستکاری زانیاری</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="alert alert-warning small">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        تێبینی: لێرە دەتوانیت دەق و وێنەکانیش دەستکاری بکەیت.
-                    </div>
-                    <form id="editForm">
-                        <input type="hidden" id="editDocId">
-                        <div id="editFieldsContainer"></div>
-                    </form>
-                </div>
-                <div class="modal-footer">
+                <div class="modal-footer border-top">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">داخستن</button>
-                    <button type="button" class="btn btn-primary" onclick="saveEditedData()">پاشەکەوتکردن</button>
+                    <button type="button" class="btn btn-success px-4" onclick="saveOptionsToField()"><i class="fa-solid fa-check me-2"></i> جێگیرکردن</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
     <script src="js/firebase-config.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/data.js?v=2"></script>
-    <script src="js/print-manager.js"></script>
     <script src="js/dark-mode.js"></script>
+    <script src="js/aid-settings.js"></script>
 
     <script>
         function showComingSoonAlert(e) {
@@ -525,23 +567,6 @@
             updateDarkIcons('fa-sun');
         }
 
-        // Check owner role بۆ پیشاندانی دوگمەی سێتینگ
-        firebase.auth().onAuthStateChanged(async (user) => {
-            if (user) {
-                try {
-                    if (typeof db !== 'undefined') {
-                        const doc = await db.collection("users").doc(user.email).get();
-                        if (doc.exists && doc.data().role === 'owner') {
-                            const settingLink = document.getElementById('navSettingsSidebar');
-                            const settingLinkMobile = document.getElementById('navSettingsMobileLi');
-                            if (settingLink) settingLink.classList.remove('d-none');
-                            if (settingLinkMobile) settingLinkMobile.classList.remove('d-none');
-                        }
-                    }
-                } catch (e) { console.error(e); }
-            }
-        });
-
         document.addEventListener('DOMContentLoaded', () => {
             const toggleBtn = document.getElementById('mobileMenuToggler');
             const navMenu = document.getElementById('navbarNav');
@@ -562,15 +587,6 @@
                     }
                 });
             }
-
-            // تەنها بۆ کۆپیکردنی ناوی پڕۆژەکە بۆ لای ڕاستی سایدبارەکەی کۆمپیوتەر
-            setTimeout(() => {
-                const titleElement = document.getElementById('formTitle');
-                const sidebarTitleElement = document.getElementById('formTitleSidebar');
-                if (titleElement && sidebarTitleElement) {
-                    sidebarTitleElement.innerText = titleElement.innerText;
-                }
-            }, 2000);
         });
     </script>
 
