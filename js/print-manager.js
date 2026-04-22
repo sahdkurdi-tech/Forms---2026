@@ -195,9 +195,13 @@ async function printData(action) {
             <meta charset="UTF-8">
             <title>فۆڕمی زانیاری</title>
             ${PRINT_STYLES}
+            <style>
+                /* چارەسەری کێشەی دۆخی تاریک لە PDF دا */
+                body, .print-container { background-color: #ffffff !important; color: #000000 !important; }
+            </style>
         </head>
-        <body>
-            <div class="print-container">
+        <body style="background-color: #ffffff;">
+            <div class="print-container" style="background-color: #ffffff;">
                 <div class="print-header">
                     <div class="logo-section">
                         <img src="logo.png" alt="Logo" onerror="this.src='logo.jpg'"> 
@@ -235,14 +239,17 @@ async function printData(action) {
         doc.write(fullHTML);
         doc.close();
 
-        setTimeout(() => {
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
-            setTimeout(() => { 
-                document.body.removeChild(iframe);
-                if (isDarkMode) document.body.classList.add('dark-mode');
-            }, 1000);
-        }, 800);
+        // چارەسەری کێشەی Allow کردن بە بەکارهێنانی onload
+        iframe.onload = function() {
+            setTimeout(() => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                setTimeout(() => { 
+                    document.body.removeChild(iframe);
+                    if (isDarkMode) document.body.classList.add('dark-mode');
+                }, 1000);
+            }, 500);
+        };
     } 
     // ===========================================
     // PDF
@@ -252,30 +259,31 @@ async function printData(action) {
         tempDiv.innerHTML = fullHTML;
         const elementToPrint = tempDiv.querySelector('.print-container');
         
-        const styleTag = document.createElement('div');
-        styleTag.innerHTML = PRINT_STYLES;
-        document.body.appendChild(styleTag);
         document.body.appendChild(tempDiv);
         
+        // چارەسەری کێشەی نەخوێندنەوەی html2pdf
         tempDiv.style.position = 'absolute';
-        tempDiv.style.left = '-9999px';
+        tempDiv.style.left = '0';
         tempDiv.style.top = '0';
         tempDiv.style.width = '210mm'; 
+        tempDiv.style.zIndex = '-1000'; // لە پشتەوەی شاشەکە دەبێت نەک -9999 بۆ ئەوەی بزانێت بیخوێنێتەوە
 
         const opt = {
-            margin: 5, // لێرە مەسافەکەم کەمکردەوە بۆ 5mm
+            margin: 5, 
             filename: `Form.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { 
                 scale: 2, 
                 useCORS: true,
-                logging: false
+                logging: false,
+                backgroundColor: '#ffffff' // ئەمە چارەسەری پەڕە سپییەکەیە!
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
         const btn = document.querySelector('.btn-outline-danger');
         const originalBtnClass = btn.className;
+        const originalBtnHtml = btn.innerHTML;
         
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ...';
         btn.disabled = true;
@@ -283,9 +291,8 @@ async function printData(action) {
         setTimeout(() => {
             html2pdf().set(opt).from(elementToPrint).save().then(() => {
                 document.body.removeChild(tempDiv);
-                document.body.removeChild(styleTag);
                 
-                btn.innerHTML = '<i class="fa-regular fa-file-pdf me-2"></i> PDF';
+                btn.innerHTML = originalBtnHtml;
                 btn.className = originalBtnClass;
                 btn.disabled = false;
 
@@ -294,8 +301,9 @@ async function printData(action) {
             }).catch(err => {
                 console.error(err);
                 alert("هەڵە لە دروستکردنی PDF");
+                document.body.removeChild(tempDiv);
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fa-regular fa-file-pdf me-2"></i> PDF';
+                btn.innerHTML = originalBtnHtml;
                 if (isDarkMode) document.body.classList.add('dark-mode');
             });
         }, 500);

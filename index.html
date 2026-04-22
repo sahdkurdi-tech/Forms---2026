@@ -327,6 +327,13 @@
                             <i class="fa-solid fa-gear me-2"></i> ســـــــێتینـــــــگ
                         </a>
                     </li>
+
+                   <li class="nav-item d-none" id="auditLogNavLink">
+                        <a class="nav-link text-warning fw-bold" href="audit-log.html">
+                            <i class="fa-solid fa-clock-rotate-left"></i> تۆماری چاودێری
+                        </a>
+                    </li>
+
                             
                     <li class="nav-item border-top pt-2 mt-1 w-100">
                         <a class="nav-link fw-bold text-secondary dark-mode-toggle" href="#">
@@ -345,7 +352,7 @@
     </nav>
 
 
-    <div id="wrapper">
+<div id="wrapper">
         <div id="sidebar-wrapper" class="d-none d-lg-block">
             <div class="d-flex justify-content-between align-items-center mb-4 p-3">
                 <div class="sidebar-heading w-100">
@@ -371,6 +378,10 @@
                     <i class="fa-solid fa-gear"></i> <span>سێتینگ</span>
                 </a>
 
+                <a href="audit-log.html" class="mobile-nav-item admin-only-link d-none text-warning">
+                    <i class="fa-solid fa-clock-rotate-left"></i> <span>تۆماری چاودێری</span>
+                </a>
+
                 <a href="#" class="mobile-nav-item text-secondary mt-5 dark-mode-toggle">
                     <i class="fa-solid fa-moon dark-mode-icon"></i> <span>دۆخی تاریک</span>
                 </a>
@@ -380,7 +391,6 @@
                 </a>
             </div>
         </div>
-
 
         <div id="page-content-wrapper" class="w-100 p-4 pt-lg-5"> 
             
@@ -408,7 +418,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/firebase-config.js"></script>
-    <script src="js/auth.js"></script>
+    <script src="js/auth.js?version=100"></script>
     <script src="js/dark-mode.js"></script>
 
     <script>

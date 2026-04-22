@@ -31,8 +31,31 @@ firebase.auth().onAuthStateChanged(async (user) => {
     }
 
     const userData = userDoc.data();
-
-    // پاراستنی پەڕە هەستیارەکان (Settings & Builder)
+// ==========================================
+    // زیادکراو بۆ پیشاندانی دوگمەی چاودێری بۆ ئەدمین
+    // ==========================================
+    if (userData.role === 'owner') {
+        // لێرەدا دەگەڕێت بەدوای هەموو ئەو دوگمانەی ئەم کلاسەیان هەیە لە هەر شوێنێکی پەڕەکە بن
+        const adminLinks = document.querySelectorAll('.admin-only-link');
+        
+        adminLinks.forEach(link => {
+            // ١. سڕینەوەی کڵاسی شاردنەوە
+            link.classList.remove('d-none');
+            
+            // ٢. پێدانی شێوازی دەرکەوتن بەپێی جۆری تاگەکە بۆ ئەوەی دیزاینی مینیۆکان تێک نەچێت
+            if (link.tagName.toUpperCase() === 'LI') {
+                // بۆ مینیۆی مۆبایل کە بە <li> دروستکراوە
+                link.style.setProperty('display', 'block', 'important');
+            } else if (link.tagName.toUpperCase() === 'A') {
+                // بۆ سایدباری کۆمپیوتەر کە بە <a> دروستکراوە
+                link.style.setProperty('display', 'flex', 'important');
+            } else {
+                link.style.setProperty('display', 'block', 'important');
+            }
+        });
+    }
+    // ==========================================
+    //     // پاراستنی پەڕە هەستیارەکان (Settings & Builder)
     // تەنها ئەوانە دەتوانن بچن کە ڕۆڵیان 'owner'ـە
     if (path.includes("settings.html") || path.includes("builder.html")) {
         if (userData.role !== 'owner') {

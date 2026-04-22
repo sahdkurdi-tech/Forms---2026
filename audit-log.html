@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ckb" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تۆماری چاودێری (Audit Log)</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/audit-log.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+</head>
+
+<body>
+    <nav class="navbar modern-navbar mx-auto d-lg-none" style="max-width: 92%;">
+        <div class="navbar-inner-bg">
+            <a class="navbar-brand d-flex align-items-center m-0" href="index.html">
+                <img src="logo3.png" alt="MROVDOSTAN" height="38" style="object-fit: contain;">
+            </a>
+            <button class="navbar-toggler border-0 shadow-none p-0" type="button" id="mobileMenuToggler">
+                <i class="fa-solid fa-bars-staggered fa-lg text-primary"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav align-items-center w-100 pt-3">
+                    <li class="nav-item border-top pt-2 mt-1 w-100">
+                        <a class="nav-link fw-bold" href="index.html">
+                            <i class="fa-solid fa-house me-2"></i> ســــــەرەکــــــی
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold" href="settings.html">
+                            <i class="fa-solid fa-gear me-2"></i> ســـــــێتینـــــــگ
+                        </a>
+                    </li>
+                    <li class="nav-item border-top pt-2 mt-1 w-100">
+                        <a class="nav-link fw-bold text-danger" href="#" onclick="logout()">
+                            <i class="fa-solid fa-right-from-bracket me-2"></i> دەرچــــــــــــوون
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div id="wrapper">
+        <div id="sidebar-wrapper" class="d-none d-lg-block">
+            <div class="d-flex justify-content-between align-items-center mb-4 p-3">
+                <div class="sidebar-heading w-100">
+                    <img src="logo.jpg" alt="MROVDOSTAN">
+                    <span class="brand-text">MROVDOSTAN</span>
+                </div>
+            </div>
+            <div class="d-flex flex-column gap-2">
+                <a href="index.html" class="mobile-nav-item border-top pt-3">
+                    <i class="fa-solid fa-house"></i> <span>سەرەکی</span>
+                </a>
+                <a href="settings.html" class="mobile-nav-item">
+                    <i class="fa-solid fa-gear"></i> <span>سێتینگ</span>
+                </a>
+                <a href="audit-log.html" class="mobile-nav-item active text-danger">
+                    <i class="fa-solid fa-shield-halved"></i> <span>تۆماری چاودێری</span>
+                </a>
+                <a href="#" class="mobile-nav-item text-secondary mt-5 dark-mode-toggle">
+                    <i class="fa-solid fa-moon dark-mode-icon"></i> <span>دۆخی تاریک</span>
+                </a>
+                <a href="#" onclick="logout()" class="mobile-nav-item text-danger mt-2 border-top pt-3">
+                    <i class="fa-solid fa-right-from-bracket"></i> <span>دەرچوون</span>
+                </a>
+            </div>
+        </div>
+
+        <div id="page-content-wrapper" class="w-100 p-4 pt-lg-5">
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                <h4 class="fw-bold m-0 text-dark"><i class="fa-solid fa-shield-halved text-danger me-2"></i> تۆماری چاودێری (Audit Log)</h4>
+                <a href="settings.html" class="btn btn-outline-secondary rounded-pill">
+                    <i class="fa-solid fa-arrow-right"></i> گەڕانەوە
+                </a>
+            </div>
+
+            <div class="modern-card p-3 mb-4 rounded-4 shadow-sm border bg-light">
+                <form id="filterForm" class="row g-3 align-items-end">
+<div class="col-md-3">
+    <label class="form-label text-muted small fw-bold">بەکارهێنەر (ئیمەیڵ)</label>
+    <select id="filterUser" class="form-select">
+        <option value="">هەموو بەکارهێنەران</option>
+        </select>
+</div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small fw-bold">جۆری کردار</label>
+                        <select id="filterAction" class="form-select">
+                            <option value="">هەموو کردارەکان</option>
+                            <option value="CREATE">زیادکردنی نوێ (Create)</option>
+                            <option value="UPDATE">دەستکاریکردن (Update)</option>
+                            <option value="DELETE">سڕینەوە (Delete)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small fw-bold">لە ڕێکەوتی</label>
+                        <input type="date" id="filterStartDate" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small fw-bold">تا ڕێکەوتی</label>
+                        <input type="date" id="filterEndDate" class="form-control">
+                    </div>
+                    <div class="col-md-2 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-filter"></i> فلتەر</button>
+                        <button type="button" id="resetFilter" class="btn btn-outline-secondary w-100"><i class="fa-solid fa-rotate"></i></button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="logsContainer" class="d-flex flex-column gap-3 mb-4" style="min-height: 400px;">
+                <div class="text-center py-5 text-muted">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <p>هێنانی داتاکان...</p>
+                </div>
+            </div>
+                
+            <div class="text-center p-3 bg-light rounded-4 shadow-sm border d-flex justify-content-between align-items-center">
+                <span class="text-muted small" id="recordCount">پیشاندانی ٥٠ تۆماری کۆتایی</span>
+                <button id="loadMoreBtn" onclick="loadMoreLogs()" class="btn btn-primary px-4 d-none rounded-pill">
+                    <i class="fa-solid fa-circle-arrow-down me-2"></i> زیاتر ببینە
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/dark-mode.js"></script>
+    <script src="js/audit-log.js"></script>
+</body>
+</html>

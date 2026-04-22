@@ -129,6 +129,9 @@ function logout() {
 // ============================================================
 // 2. LOAD DATA
 // ============================================================
+// ============================================================
+// 2. LOAD DATA
+// ============================================================
 async function loadInitialData() {
     if(!formId) return;
 
@@ -140,7 +143,8 @@ async function loadInitialData() {
     allSubmissions = [];
     currentRenderIndex = 0;
     
-    if(countElement) countElement.innerText = "..."; 
+    // جێبەجێکردنی داواکارییەکەت: نووسینی کاتی تا کۆی گشتی دەژمێردرێت
+    if(countElement) countElement.innerText = "چاوەڕێ بکە..."; 
 
     if(spinner) spinner.style.display = 'block';
     if(document.getElementById('loadMoreBtn')) document.getElementById('loadMoreBtn').classList.add('d-none');
@@ -156,40 +160,76 @@ async function loadInitialData() {
 
         window.originalFormStructure = formData.fields || [];
 
-        const snapshot = await db.collection("forms").doc(formId).collection("submissions")
-                                 .limit(2500) 
+        // هەنگاوی یەکەم: هێنانی تەنیا ٥٠ داتای یەکەم بە خێراییەکی زۆر (بۆ ئەوەی خێرا پەڕەکە بکرێتەوە)
+        const firstBatchSnapshot = await db.collection("forms").doc(formId).collection("submissions")
+                                 .orderBy("submittedAt", "desc")
+                                 .limit(50) 
                                  .get();
 
-        if (snapshot.empty) {
+        if (firstBatchSnapshot.empty) {
             tableBody.innerHTML = '<tr><td colspan="100%" class="text-center py-5">هیچ داتایەک نییە</td></tr>';
             if(countElement) countElement.innerText = "0";
             if(spinner) spinner.style.display = 'none';
             return;
         }
 
-        snapshot.forEach(doc => {
+        // پڕکردنەوەی ٥٠ داتاکە لە ناو سیستەم
+        firstBatchSnapshot.forEach(doc => {
             let data = doc.data();
             data.id = doc.id;
             allSubmissions.push(data);
         });
 
-        allSubmissions.sort((a, b) => {
-            const timeA = normalizeDate(a.submittedAt);
-            const timeB = normalizeDate(b.submittedAt);
-            return timeB - timeA; 
-        });
-
-        if(countElement) {
-            countElement.innerText = allSubmissions.length;
-            totalDatabaseCount = allSubmissions.length;
-        }
-
+        // پیشاندانی ٥٠ داتاکە یەکسەر بەبێ چاوەڕێکردنی ئەوانی تر
         renderNextBatch();
+        
+        // شاردنەوەی لۆدینگ چونکە ٥٠ داتاکە دەرکەوتن
+        if(spinner) spinner.style.display = 'none';
+
+        // هەنگاوی دووەم: هێنانی کۆی گشتی داتاکان لە باکگراوند (Asynchronous) بێ ئەوەی خێرایی پەڕەکە کەم بکاتەوە
+        db.collection("forms").doc(formId).collection("submissions").get()
+            .then((fullSnapshot) => {
+                // کاتێک ژماردن تەواو بوو، نوسینەکە دەگۆڕدرێت بۆ ژمارە ڕاستەقینەکە
+                if(countElement) {
+                    countElement.innerText = fullSnapshot.size;
+                    totalDatabaseCount = fullSnapshot.size;
+                }
+
+                // ئامادەکردنی هەموو داتاکان بۆ ئەوەی گەڕان و ئەکسڵ بێ کێشە کار بکەن
+                let tempAllData = [];
+                fullSnapshot.forEach(doc => {
+                    let data = doc.data();
+                    data.id = doc.id;
+                    tempAllData.push(data);
+                });
+
+                // ڕیزبەندکردنی هەموو داتاکان لە نوێوە بۆ کۆن
+                tempAllData.sort((a, b) => {
+                    const timeA = normalizeDate(a.submittedAt);
+                    const timeB = normalizeDate(b.submittedAt);
+                    return timeB - timeA; 
+                });
+
+                allSubmissions = tempAllData;
+
+                // دەرخستنەوەی دوگمەی "پیشاندانی زیاتر" ئەگەر داتای تر مابوو لەدوای ٥٠ دانەکە
+                const loadBtn = document.getElementById('loadMoreBtn');
+                if (currentRenderIndex < allSubmissions.length) {
+                    if(loadBtn) {
+                        loadBtn.classList.remove('d-none');
+                        loadBtn.innerText = `پیشاندانی زیاتر (${allSubmissions.length - currentRenderIndex} ماوە)`;
+                        loadBtn.onclick = renderNextBatch; 
+                    }
+                }
+            })
+            .catch((err) => {
+                console.error("Error fetching background data:", err);
+                if(countElement) countElement.innerText = "نەزانراو";
+            });
 
     } catch (error) {
         console.error("Load Error:", error);
         alert("هەڵە: " + error.message);
-    } finally {
         if(spinner) spinner.style.display = 'none';
     }
 }
@@ -648,8 +688,10 @@ async function saveEditedData() {
     
     let newData = {};
     const targetIndex = allSubmissions.findIndex(sub => sub.id === docId);
+let oldDataForAudit = {}; // <--- ئەمەمان زیادکرد
     if(targetIndex !== -1 && allSubmissions[targetIndex].data) {
         newData = { ...allSubmissions[targetIndex].data };
+        oldDataForAudit = JSON.parse(JSON.stringify(newData)); // <--- ئەمەمان زیادکرد بۆ پاراستنی داتای کۆن
     }
 
     // پشکنین بۆ ئەو وێنانەی لەناو پەنجەرەی دەستکاریکردن سڕاونەتەوە
@@ -709,6 +751,10 @@ async function saveEditedData() {
         }
 
         await db.collection("forms").doc(formId).collection("submissions").doc(docId).update({ data: newData });
+        // --- تۆمارکردن لە Audit Log ---
+        if (typeof window.logAuditAction === 'function') {
+            window.logAuditAction('UPDATE', 'submissions', docId, oldDataForAudit, newData);
+        }
         
         // سڕینەوەی وێنە لا براوەکان لە Firebase Storage بە شێوەی ئۆتۆماتیکی
         for (const url of urlsToDelete) {
@@ -782,7 +828,7 @@ function extractAllImageUrlsFromData(dataObj) {
 }
 
 // ============================================================
-// 4. DETAIL MODAL (NEW MODERN DESIGN)
+// 4. DETAIL MODAL (NEW MODERN DESIGN & HIDE EMPTY FIELDS)
 // ============================================================
 function openDetailModal(docId) {
     const data = allSubmissions.find(d => d.id === docId);
@@ -793,39 +839,80 @@ function openDetailModal(docId) {
     
     let date = data.submittedAt ? new Date(data.submittedAt.seconds * 1000).toLocaleString('ckb') : '-';
     
-    // هێدەری مۆدالەکە (ناونیشان، کات، وە ئایدی فۆڕمەکە)
+    // تەنیا کارتی زانیارییەکان بەبێ زیادکردنی دوگمەی داخستنی ناوەکی
     container.innerHTML = `
-        <div class="card border-0 shadow-sm mb-4 rounded-4 bg-primary bg-opacity-10 print-row" style="background-color: #f0f9ff !important;">
-            <div class="card-body d-flex justify-content-between align-items-center p-3">
-                <div>
-                    <h5 class="mb-1 fw-bold text-primary"><i class="fa-regular fa-folder-open ms-2"></i>زانیارییەکانی تۆمار</h5>
-                    <small class="text-muted"><i class="fa-regular fa-clock ms-1"></i>کاتی ناردن: <span class="dir-ltr d-inline-block fw-bold">${date}</span></small>
+        <div class="d-flex justify-content-between align-items-center mb-4 p-3 rounded-4 shadow-sm print-row" style="background: linear-gradient(135deg, rgba(3, 182, 247, 0.1) 0%, rgba(3, 182, 247, 0.05) 100%); border: 1px solid rgba(3, 182, 247, 0.2);">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-white rounded-circle d-flex justify-content-center align-items-center shadow-sm" style="width: 48px; height: 48px;">
+                    <i class="fa-solid fa-file-invoice text-primary fs-4"></i>
                 </div>
-                <div class="text-end">
-                    <span class="badge bg-primary rounded-pill px-3 py-2 border shadow-sm" style="letter-spacing: 1px;">ID: ${docId.substring(0, 6).toUpperCase()}</span>
+                <div>
+                    <h5 class="mb-0 fw-bold text-dark">زانیارییەکانی تۆمار</h5>
+                    <small class="text-muted"><i class="fa-regular fa-clock me-1"></i> ${date}</small>
                 </div>
             </div>
+            <div class="text-end">
+                <span class="badge bg-white text-primary rounded-pill px-3 py-2 border shadow-sm fs-6" style="letter-spacing: 1px; font-family: monospace;">#${docId.substring(0, 6).toUpperCase()}</span>
+            </div>
         </div>
+        
         <div class="row g-3" id="detailGrid_${docId}"></div>
     `;
     
     const gridContainer = container.querySelector(`#detailGrid_${docId}`);
     renderDetailFieldsRecursive(window.originalFormStructure || [], data.data, gridContainer, false);
     
+    // شاردنەوەی هێڵی ژێرەوەی مۆدال هێدەرەکە بۆ ئەوەی دیزاینەکە پاکتر بێت
+    const modalHeader = document.querySelector('#detailModal .modal-header');
+    if(modalHeader) {
+        modalHeader.style.borderBottom = 'none';
+    }
+
+    // چارەسەری دوگمەی "×"ی ئەسڵی خۆی (لە Header)
+    const headerCloseBtn = document.querySelector('#detailModal .modal-header .btn-close') || document.querySelector('#detailModal .modal-header button[data-bs-dismiss="modal"]');
+    
+    if(headerCloseBtn) {
+        // سڕینەوەی کڵاسی بنەڕەتی بووتستراپ بۆ ئەوەی کێشەی باکگراوندە سپییەکە دروست نەکات
+        headerCloseBtn.classList.remove('btn-close');
+        
+        // دانانی ئایکۆنی ناوەکی و کڵاسی سوور بە شێوازی مۆدێرن
+        headerCloseBtn.innerHTML = '<i class="fa-solid fa-xmark fs-5"></i>';
+        headerCloseBtn.className = 'btn btn-danger rounded-circle shadow-sm d-flex justify-content-center align-items-center position-absolute';
+        
+        // بردنە سەرەوەی لای چەپ بە تەواوی وەک وێنەکە
+        headerCloseBtn.style.left = '20px';
+        headerCloseBtn.style.top = '20px';
+        headerCloseBtn.style.width = '35px';
+        headerCloseBtn.style.height = '35px';
+        headerCloseBtn.style.padding = '0';
+        headerCloseBtn.style.zIndex = '1050'; // بۆ ئەوەی هەمیشە لە پێشەوە بێت
+        
+        // ئەنیمەیشنی جووڵە لە کاتی چوونە سەری
+        headerCloseBtn.style.transition = 'transform 0.2s';
+        headerCloseBtn.onmouseover = () => headerCloseBtn.style.transform = 'scale(1.1)';
+        headerCloseBtn.onmouseout = () => headerCloseBtn.style.transform = 'scale(1)';
+    }
+
+    // چارەسەری دوگمەی داخستنەکەی خوارەوە بەبێ ئەوەی دەست لە پرێنت بدرێت
+    const footerCloseBtn = document.querySelector('#detailModal .modal-footer button[data-bs-dismiss="modal"]');
+    if(footerCloseBtn) {
+        footerCloseBtn.className = "btn btn-outline-danger rounded-pill px-4 fw-bold shadow-sm";
+        footerCloseBtn.innerHTML = '<i class="fa-solid fa-xmark me-2"></i> داخستن';
+    }
+    
     new bootstrap.Modal(document.getElementById('detailModal')).show();
 }
 
 function renderDetailFieldsRecursive(fields, values, container, isNested = false) {
-    // ئایکۆنەکان بەپێی جۆری پرسیار
     const fieldIcons = {
-        'text': '<i class="fa-solid fa-align-right text-primary ms-1"></i>',
-        'number': '<i class="fa-solid fa-hashtag text-success ms-1"></i>',
-        'date': '<i class="fa-regular fa-calendar-alt text-warning ms-1"></i>',
-        'note': '<i class="fa-solid fa-paragraph text-secondary ms-1"></i>',
-        'select_one': '<i class="fa-regular fa-check-circle text-info ms-1"></i>',
-        'select_many': '<i class="fa-solid fa-list-check text-info ms-1"></i>',
-        'photo': '<i class="fa-regular fa-images text-danger ms-1"></i>',
-        'fingerprint': '<i class="fa-solid fa-fingerprint text-dark ms-1"></i>'
+        'text': '<i class="fa-solid fa-align-right text-primary"></i>',
+        'number': '<i class="fa-solid fa-hashtag text-success"></i>',
+        'date': '<i class="fa-regular fa-calendar-alt text-warning"></i>',
+        'note': '<i class="fa-solid fa-paragraph text-secondary"></i>',
+        'select_one': '<i class="fa-regular fa-check-circle text-info"></i>',
+        'select_many': '<i class="fa-solid fa-list-check text-info"></i>',
+        'photo': '<i class="fa-regular fa-images text-danger"></i>',
+        'fingerprint': '<i class="fa-solid fa-fingerprint text-dark"></i>'
     };
 
     fields.forEach(f => {
@@ -833,60 +920,65 @@ function renderDetailFieldsRecursive(fields, values, container, isNested = false
         
         let rawVal = getFieldValue(values, f);
         let isEmpty = (rawVal === undefined || rawVal === null || rawVal === "" || rawVal === "-");
+        let urls = [];
+
+        if(f.type === 'photo' || f.type === 'fingerprint') {
+            urls = parseImageUrls(rawVal);
+            if (urls.length === 0) isEmpty = true;
+        }
+
+        // =========================================
+        // گۆڕانکارییەکە لێرەدایە: لێرەدا ڕێگری لە دروستبوونی ناکەین (return ناکەین)،
+        // بۆ ئەوەی لە کاتی پرێنت دەرکەونەوە.
+        // =========================================
 
         let content = '';
-        
-        // ڕێکخستنی قەبارەی خانەکان: تێبینی، وێنە، و فرەهەڵبژاردن شوێنی گەورەیان دەوێت (col-12) ئەوانی تر (col-md-6)
         let colClass = isNested ? "col-12" : ((f.type === 'note' || f.type === 'photo' || f.type === 'fingerprint' || f.type === 'select_many') ? "col-12" : "col-md-6");
 
-        // شێوازی پیشاندانی وەڵامەکان
         if (isEmpty) {
-            content = `<span class="badge bg-light text-muted border px-2 py-1 mt-1 fw-normal">بەتاڵە</span>`;
-} else if(f.type === 'photo' || f.type === 'fingerprint') {
-            let urls = parseImageUrls(rawVal);
-            if (urls.length === 0) {
-                 content = `<span class="badge bg-light text-muted border px-2 py-1 mt-1 fw-normal">بەتاڵە</span>`;
-            } else {
-                // -- گۆڕانکارییەکە لێرەدایە --
-                // ١. کۆدکردنی لینکەکان بۆ ئەوەی بە سەلامەتی بنێردرێت بۆ فەنکشنەکە
-                const safeUrls = encodeURIComponent(JSON.stringify(urls));
-                
-                // ٢. زیادکردنی دوگمەکە لەسەرەوەی وێنەکان
-                let galleryHtml = `
-                    <div class="mb-2 text-start">
-                        <button onclick="shareImagesAsPDF('${safeUrls}')" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm">
-                            <i class="fa-brands fa-whatsapp me-1"></i> شەیرکردنی وێنەکان (PDF)
-                        </button>
-                    </div>
-                    <div class="d-flex flex-wrap gap-2 justify-content-start mt-2">`;
-                
-                urls.forEach(url => { 
-                    galleryHtml += `<a href="${url}" target="_blank" style="transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                        <img src="${url}" class="rounded-3 border shadow-sm" style="width: 85px; height: 85px; object-fit: cover;" onerror="this.src='https://via.placeholder.com/85?text=Error'">
-                    </a>`; 
-                });
-                galleryHtml += `</div>`;
-                content = `<div>${galleryHtml}</div>`;
-            }
+            // گەڕاندنەوەی شێوازی بۆشایی لە جیاتی 'بەتاڵە' بۆ ئەوەی لە کاغەزەکەدا دیار بێت و خاوێن بێت
+            content = `<span class="badge bg-light text-muted border px-2 py-1 mt-1 fw-normal">&nbsp;</span>`;
+        } else if(f.type === 'photo' || f.type === 'fingerprint') {
+            const safeUrls = encodeURIComponent(JSON.stringify(urls));
+            let galleryHtml = `
+                <div class="mb-3 text-start d-print-none">
+                    <button onclick="shareImagesAsPDF('${safeUrls}')" class="btn btn-sm btn-outline-success rounded-pill px-3 shadow-sm border-2 fw-bold">
+                        <i class="fa-brands fa-whatsapp me-1"></i> شەیرکردنی وێنەکان (PDF)
+                    </button>
+                </div>
+                <div class="d-flex flex-wrap gap-2 justify-content-start mt-2">`;
+            
+            urls.forEach(url => { 
+                galleryHtml += `<a href="${url}" target="_blank" class="d-inline-block" style="transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    <img src="${url}" class="rounded-3 shadow-sm" style="width: 90px; height: 90px; object-fit: cover; border: 2px solid #fff;">
+                </a>`; 
+            });
+            galleryHtml += `</div>`;
+            content = `<div>${galleryHtml}</div>`;
         }
-                else if(f.type === 'note') {
-             content = `<div class="p-3 bg-light rounded-3 border-start border-4 border-secondary text-dark mt-2 shadow-sm" style="white-space: pre-wrap; font-size: 0.95em; line-height: 1.6;">${rawVal}</div>`;
+        else if(f.type === 'note') {
+            content = `<div class="p-3 bg-light rounded-4 text-dark mt-2" style="white-space: pre-wrap; font-size: 1rem; line-height: 1.7; border: 1px solid #f1f5f9;">${rawVal}</div>`;
         } else {
             let displayVal = Array.isArray(rawVal) ? rawVal.join('، ') : rawVal;
-            content = `<div class="fw-bold text-dark mt-1 fs-6" style="word-break: break-word;">${displayVal}</div>`;
+            content = `<div class="fw-bold text-dark mt-2 fs-5" style="word-break: break-word;">${displayVal}</div>`;
         }
 
-        const icon = fieldIcons[f.type] || '<i class="fa-solid fa-asterisk text-muted ms-1"></i>';
+        const icon = fieldIcons[f.type] || '<i class="fa-solid fa-asterisk text-muted"></i>';
 
-        // دروستکردنی بۆکسی خانەکە بە شێوازی مۆدێرن
+        // سیحری شاردنەوەکە:
+        // d-none = لەسەر شاشە دەیشارێتەوە
+        // d-print-block = لە کاتی پرێنت دەیدەخاتەوە
+        // empty-field-element = ناوێکی تایبەت بۆ ئەوەی لە PDF ئاسانتر مامەڵەی لەگەڵ بکەین
+        let displayClass = isEmpty ? "d-none d-print-block empty-field-element" : "";
+
         const fieldWrapper = document.createElement('div');
-        fieldWrapper.className = colClass + " print-row";
+        fieldWrapper.className = `${colClass} print-row ${displayClass}`;
         fieldWrapper.innerHTML = `
-            <div class="p-3 bg-white border rounded-4 shadow-sm h-100 position-relative" style="transition: box-shadow 0.2s;" onmouseover="this.classList.add('shadow')" onmouseout="this.classList.remove('shadow')">
-                <div class="text-muted small fw-bold mb-2 d-flex align-items-center border-bottom pb-2 print-label">
-                    ${icon} <span class="text-secondary-emphasis">${f.label}</span>
+            <div class="p-3 bg-white rounded-4 h-100 position-relative shadow-sm" style="border: 1px solid #f8fafc; transition: all 0.2s;" onmouseover="this.style.borderColor='#e2e8f0'" onmouseout="this.style.borderColor='#f8fafc'">
+                <div class="text-muted small fw-bold mb-1 d-flex align-items-center opacity-75 print-label">
+                    <span class="me-2 fs-6">${icon}</span> <span>${f.label}</span>
                 </div>
-                <div class="print-value">
+                <div class="print-value ms-1">
                     ${content}
                 </div>
                 <div class="branches-container mt-2"></div>
@@ -895,23 +987,34 @@ function renderDetailFieldsRecursive(fields, values, container, isNested = false
         
         container.appendChild(fieldWrapper);
 
-        // ئەگەر پرسیارەکە لقی (Branch) هەبوو، لە ژێرەوەی خۆی بە جوانی نیشانی دەدەین
-        if (!isEmpty && (f.type === 'select_one' || f.type === 'select_many') && f.branches) {
+        // ڕێکخستنی لقەکان
+        if ((f.type === 'select_one' || f.type === 'select_many') && f.branches && !isEmpty) {
             const selections = Array.isArray(rawVal) ? rawVal : [rawVal];
             const branchesContainer = fieldWrapper.querySelector('.branches-container');
             
             selections.forEach(sel => {
                 if(f.branches[sel]) {
                     const branchOuter = document.createElement('div');
-                    branchOuter.className = "mt-3 p-3 bg-light border-end border-4 border-info rounded-4 shadow-sm";
-                    branchOuter.innerHTML = `<div class="small text-info mb-3 fw-bold"><i class="fa-solid fa-arrow-turn-down ms-1"></i> پەیوەست بە: <span class="text-dark bg-white px-2 py-1 rounded border shadow-sm ms-1">${sel}</span></div>`;
+                    branchOuter.className = "mt-3 p-3 bg-light rounded-4 shadow-sm branch-wrapper";
+                    branchOuter.style.borderRight = "4px solid #03b6f7";
+                    branchOuter.innerHTML = `<div class="small text-muted mb-3 fw-bold"><i class="fa-solid fa-arrow-turn-down ms-1 text-primary"></i> پەیوەست بە: <span class="text-dark bg-white px-2 py-1 rounded shadow-sm ms-1">${sel}</span></div>`;
                     
                     const nestedGrid = document.createElement('div');
-                    nestedGrid.className = "row g-2";
+                    nestedGrid.className = "row g-3";
                     branchOuter.appendChild(nestedGrid);
 
                     renderDetailFieldsRecursive(f.branches[sel], values, nestedGrid, true);
-                    branchesContainer.appendChild(branchOuter);
+                    
+                    if(nestedGrid.children.length > 0) {
+                        // ئەگەر هەموو خانەکانی ناو لقێک بەتاڵ بوون، ئەوا بۆکسی لقەکەش دەشارینەوە بۆ شاشە
+                        let allChildrenHidden = Array.from(nestedGrid.children).every(child => child.classList.contains('empty-field-element'));
+                        
+                        if (allChildrenHidden) {
+                            branchOuter.classList.add('d-none', 'd-print-block', 'empty-field-element');
+                        }
+                        
+                        branchesContainer.appendChild(branchOuter);
+                    }
                 }
             });
         }
@@ -1035,14 +1138,35 @@ async function exportToExcel() {
     exportBtn.disabled = true;
 
     try {
-        const snapshot = await db.collection("forms").doc(formId).collection("submissions").orderBy("submittedAt", "desc").get();
-        if (snapshot.empty) throw new Error("هیچ داتایەک نییە!");
+        // ١. پشکنین دەکەین بزانین ئایا گەڕان کراوە یان نا؟
+        const searchInputs = document.querySelectorAll('.column-search');
+        let hasSearchTerm = false;
+        searchInputs.forEach(input => {
+            if (input.value.trim() !== "") hasSearchTerm = true;
+        });
+
+        let dataToExport = [];
+
+        // ٢. ئەگەر گەڕان کرابوو، تەنها ئەنجامی گەڕانەکە دەبەین
+        if (hasSearchTerm) {
+            if (currentSearchResults.length === 0) throw new Error("هیچ داتایەک نەدۆزرایەوە بۆ دابەزاندن!");
+            dataToExport = currentSearchResults;
+        } 
+        // ٣. ئەگەر گەڕان نەکرابوو، هەموو داتاکان لە داتابەیس دەهێنین
+        else {
+            const snapshot = await db.collection("forms").doc(formId).collection("submissions").orderBy("submittedAt", "desc").get();
+            if (snapshot.empty) throw new Error("هیچ داتایەک نییە!");
+            
+            snapshot.docs.forEach(doc => {
+                dataToExport.push(doc.data());
+            });
+        }
 
         let allKeys = new Set(["#", "کات"]);
         const fullData = [];
 
-        snapshot.docs.forEach((doc, index) => {
-            const sub = doc.data();
+        // ٤. ڕێکخستنی داتاکان بۆ ناو فایلی ئەکسڵ
+        dataToExport.forEach((sub, index) => {
             const record = {
                 "#": index + 1,
                 "کات": sub.submittedAt ? new Date(sub.submittedAt.seconds * 1000).toLocaleString('ckb') : '-'
@@ -1059,18 +1183,28 @@ async function exportToExcel() {
             fullData.push(record);
         });
 
+        // ٥. دروستکردنی پەڕەی ئەکسڵەکە
         const worksheet = XLSX.utils.json_to_sheet(fullData);
         const colWidths = Array.from(allKeys).map(() => ({ wch: 20 })); 
         worksheet['!cols'] = colWidths;
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
+        
         const formTitle = document.getElementById('formTitle').innerText || "Export";
-        XLSX.writeFile(workbook, `${formTitle}.xlsx`);
+        
+        // ئەگەر گەڕان کرابوو، با ناوی فایلەکە وشەی (گەڕان)ـی لەگەڵ بێت بۆ ئەوەی جیاکرێتەوە
+        const fileName = hasSearchTerm ? `${formTitle} (ئەنجامی گەڕان).xlsx` : `${formTitle}.xlsx`;
+        
+        XLSX.writeFile(workbook, fileName);
 
-    } catch (error) { console.error("Excel Error:", error); alert("هەڵە لە دابەزاندن: " + error.message); } 
-    finally { exportBtn.innerHTML = originalText; exportBtn.disabled = false; }
+    } catch (error) { 
+        console.error("Excel Error:", error); 
+        alert("هەڵە لە دابەزاندن: " + error.message); 
+    } finally { 
+        exportBtn.innerHTML = originalText; 
+        exportBtn.disabled = false; 
+    }
 }
-
 async function generateMultiPagePDF(imageUrls, title) {
     if (!window.jspdf) return alert("PDF Library not loaded!");
     const { jsPDF } = window.jspdf;
@@ -1277,6 +1411,12 @@ async function deleteSelected() {
     
     try { 
         await batch.commit(); 
+        // --- تۆمارکردنی هەموو سڕینەوەکان لە Audit Log ---
+        if (typeof window.logAuditAction === 'function') {
+            selectedIds.forEach(deletedId => {
+                window.logAuditAction('DELETE', 'submissions', deletedId);
+            });
+        }
         
         // سڕینەوەی وێنەکان لە ستۆرج دوای ئەوەی کەیسەکە سڕایەوە
         for (const url of urlsToDelete) {
@@ -1299,6 +1439,10 @@ async function deleteSingle(id) {
         }
         
         await db.collection("forms").doc(formId).collection("submissions").doc(id).delete(); 
+        // --- تۆمارکردن لە Audit Log ---
+        if (typeof window.logAuditAction === 'function') {
+            window.logAuditAction('DELETE', 'submissions', id);
+        }
         
         // سڕینەوەی وێنەکان
         for (const url of urlsToDelete) {

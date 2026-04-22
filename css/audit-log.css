@@ -1,0 +1,68 @@
+/* css/audit-log.css */
+
+.audit-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.audit-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ئەم بەشە زۆر گرنگە بۆ ئەوەی وشە و لینکە درێژەکان نەچنە دەرەوەی کارتەکە */
+.diff-container {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-all;
+}
+
+.text-break {
+    word-break: break-word !important; 
+    white-space: pre-wrap;
+    display: inline-block;
+    padding: 4px 6px;
+    line-height: 1.6;
+}
+
+ins, del {
+    display: block;
+}
+
+/* ====================================
+   گونجاندن لەگەڵ دۆخی تاریک (Dark Mode)
+   ==================================== */
+body.dark-mode .audit-card {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+body.dark-mode .audit-card .text-dark {
+    color: #f1f5f9 !important;
+}
+
+body.dark-mode .audit-card .bg-white {
+    background-color: #1e293b !important;
+}
+
+body.dark-mode .diff-container,
+body.dark-mode .audit-card .bg-light {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+}
+
+body.dark-mode .text-danger.bg-danger {
+    color: #f87171 !important;
+    background-color: rgba(239, 68, 68, 0.15) !important;
+}
+
+body.dark-mode .text-success.bg-success {
+    color: #4ade80 !important;
+    background-color: rgba(74, 222, 128, 0.15) !important;
+}
+
+body.dark-mode .badge.bg-light {
+    background-color: #334155 !important;
+    color: #cbd5e1 !important;
+    border-color: #475569 !important;
+}

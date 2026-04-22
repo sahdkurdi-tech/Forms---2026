@@ -6,9 +6,9 @@ const standardCollections = [
     "users",
     "aid_fields",
     "aid_categories",
-    "aid_cases"
+    "aid_cases",
+    "audit_logs" // <--- ئەمە زیاد بکە
 ];
-
 // ==========================================
 // 1. بەشی هەڵگرتنی باکەپ (EXPORT)
 // ==========================================
@@ -226,6 +226,61 @@ async function restoreProcess(data) {
         console.error("Restore Execution Error:", error);
         Swal.fire('هەڵە', 'کێشە لە گێڕانەوەی داتا: ' + error.message, 'error');
     } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+async function triggerCloudBackup() {
+    const btn = document.getElementById('btnCloudBackup');
+    const originalText = btn.innerHTML;
+    
+    // پشکنین دەکەین بزانین بەکارهێنەرەکە خاوەنە (owner) یان لۆگینی کردووە
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        Swal.fire('هەڵە', 'تکایە سەرەتا بچۆ ژوورەوە!', 'error');
+        return;
+    }
+
+    // پرسیارکردن پێش جێبەجێکردن
+    const confirmResult = await Swal.fire({
+        title: 'باکەپی سێرڤەر',
+        text: 'دڵنیایت دەتەوێت باکەپێکی نوێ لەناو خودی سێرڤەری فایەربەیس دروست بکەیت؟',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#03b6f7',
+        cancelButtonColor: '#dc3545',
+        confirmButtonText: 'بەڵێ، دروستی بکە',
+        cancelButtonText: 'پاشگەزبوونەوە'
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
+    // گۆڕینی شێوەی دوگمەکە بۆ کاتی چاوەڕوانی
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> خەریکی دروستکردنی باکەپ...';
+
+    try {
+        // بانگکردنی فەنکشنەکەی سێرڤەر (Cloud Function)
+        const backupFunction = firebase.functions().httpsCallable('createServerBackup');
+        const result = await backupFunction();
+
+        if (result.data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'سەرکەوتوو بوو',
+                text: 'باکەپەکە بە سەرکەوتوویی لەناو سێرڤەر (Firebase Storage) هەڵگیرا!',
+                confirmButtonText: 'باشە',
+                confirmButtonColor: '#28a745'
+            });
+        } else {
+            throw new Error(result.data.error || "کێشەیەک ڕوویدا لە سێرڤەر");
+        }
+    } catch (error) {
+        console.error("Cloud Backup Error:", error);
+        Swal.fire('هەڵە ڕوویدا', error.message, 'error');
+    } finally {
+        // گەڕاندنەوەی دوگمەکە بۆ دۆخی ئاسایی
         btn.disabled = false;
         btn.innerHTML = originalText;
     }

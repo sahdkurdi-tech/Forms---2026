@@ -18,6 +18,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-functions-compat.js"></script>
 
     <style>
         /* ڕێکخستنی سایدباری کۆمپیوتەر */
@@ -235,6 +236,13 @@
                             <i class="fa-solid fa-gear me-2"></i> ســـــــێتینـــــــگ
                         </a>
                     </li>
+
+                                       <li class="nav-item d-none" id="auditLogNavLink">
+                        <a class="nav-link text-warning fw-bold" href="audit-log.html">
+                            <i class="fa-solid fa-clock-rotate-left"></i> تۆماری چاودێری
+                        </a>
+                    </li>
+
                             
                     <li class="nav-item border-top pt-2 mt-1 w-100">
                         <a class="nav-link fw-bold text-secondary dark-mode-toggle" href="#">
@@ -278,6 +286,11 @@
                 <a href="settings.html" class="mobile-nav-item active">
                     <i class="fa-solid fa-gear"></i> <span>سێتینگ</span>
                 </a>
+
+               <a href="audit-log.html" class="mobile-nav-item admin-only-link d-none text-warning">
+                    <i class="fa-solid fa-clock-rotate-left"></i> <span>تۆماری چاودێری</span>
+                </a>
+
 
                 <a href="#" class="mobile-nav-item text-secondary mt-5 dark-mode-toggle">
                     <i class="fa-solid fa-moon dark-mode-icon"></i> <span>دۆخی تاریک</span>
@@ -439,42 +452,44 @@
                     </div>
                 </div>
 
-                <div class="tab-pane fade" id="pills-backup">
-                    <div class="row justify-content-center">
-                        <div class="col-lg-8">
-                            <div class="modern-card p-5 text-center">
-                                <div class="mb-4 text-warning">
-                                    <i class="fa-solid fa-server fa-4x"></i>
-                                </div>
-                                <h3 class="fw-bold mb-3">باکەپ و گێڕانەوەی داتا</h3>
-                                <p class="text-muted mb-5 w-75 mx-auto">
-                                    ئەم بەشە زۆر هەستیارە. لێرە دەتوانیت کۆپییەکی تەواوی داتابەیسەکە (فۆرمەکان،
-                                    وەڵامەکان، کارمەندان) دابەزێنیت یان بیهێنیتەوە.
-                                </p>
-
-                                <div class="d-flex justify-content-center gap-4 flex-wrap">
-                                    <button id="btnBackup" onclick="createBackup()"
-                                        class="btn btn-outline-dark btn-lg px-5 py-3 shadow-sm rounded-pill">
-                                        <i class="fa-solid fa-download me-2"></i> هەڵگرتنی باکەپ (Export)
-                                    </button>
-
-                                    <button id="btnRestore" onclick="triggerRestore()"
-                                        class="btn btn-warning text-dark fw-bold btn-lg px-5 py-3 shadow-sm rounded-pill">
-                                        <i class="fa-solid fa-upload me-2"></i> هێنانەوەی باکەپ (Import)
-                                    </button>
-
-                                    <input type="file" id="backupFileInput" accept=".json" style="display: none;"
-                                        onchange="handleRestore(this)">
-                                </div>
-
-                                <div class="alert alert-info mt-5 text-start d-inline-block rounded-pill px-4">
-                                    <small><i class="fa-solid fa-circle-info me-1"></i> تێبینی: فایلەکان بە شێوەی
-                                        <b>JSON</b> دادەبەزن و پارێزراون.</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+<div class="tab-pane fade" id="pills-backup">
+    <div class="row justify-content-center">
+        <div class="col-lg-10"> <div class="modern-card p-5 text-center">
+                <div class="mb-4 text-warning">
+                    <i class="fa-solid fa-server fa-4x"></i>
                 </div>
+                <h3 class="fw-bold mb-3">باکەپ و گێڕانەوەی داتا</h3>
+                <p class="text-muted mb-5 w-75 mx-auto">
+                    لێرە دەتوانیت کۆپییەکی تەواوی داتابەیسەکە هەڵبگریت. باکەپی سێرڤەر ڕاستەوخۆ لەناو فایەربەیس پاشەکەوت دەبێت و باکەپی ئاسایی لەناو کۆمپیوتەرەکەت.
+                </p>
+
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <button id="btnCloudBackup" onclick="triggerCloudBackup()"
+                        class="btn btn-success text-white fw-bold btn-lg px-4 py-3 shadow-sm rounded-pill">
+                        <i class="fa-solid fa-cloud-arrow-up me-2"></i> باکەپی سێرڤەر (Cloud)
+                    </button>
+
+                    <button id="btnBackup" onclick="createBackup()"
+                        class="btn btn-outline-dark btn-lg px-4 py-3 shadow-sm rounded-pill">
+                        <i class="fa-solid fa-download me-2"></i> دابەزاندنی JSON
+                    </button>
+
+                    <button id="btnRestore" onclick="triggerRestore()"
+                        class="btn btn-warning text-dark fw-bold btn-lg px-4 py-3 shadow-sm rounded-pill">
+                        <i class="fa-solid fa-upload me-2"></i> هێنانەوەی داتا (Import)
+                    </button>
+
+                    <input type="file" id="backupFileInput" accept=".json" style="display: none;"
+                        onchange="handleRestore(this)">
+                </div>
+
+                <div class="alert alert-info mt-5 text-start d-inline-block rounded-pill px-4">
+                    <small><i class="fa-solid fa-circle-info me-1"></i> تێبینی: باکەپی سێرڤەر هەموو شەوێک کاتژمێر ١٢ بە شێوەیەکی ئۆتۆماتیکیش ئەنجام دەدرێت.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
             </div>
         </div>

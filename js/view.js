@@ -7,6 +7,15 @@ const formEl = document.getElementById('publicForm');
 const container = document.getElementById('dynamicInputs');
 const titleEl = document.getElementById('formTitleDisplay');
 const STORAGE_KEY = `autosave_data_${formId}`;
+// --- زیادکراو بۆ ناسینەوەی کارمەند ---
+let loggedInUserForLog = "بەکارهێنەری گشتی (لینک)";
+
+firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+        loggedInUserForLog = user.email.toLowerCase();
+    }
+});
+// ------------------------------------
 
 // گوێگرتن لە هەر گۆڕانکارییەک (نووسین یان هەڵبژاردن)
 // --- فەنکشنی نوێ بۆ گۆڕینی ژمارەی کوردی و عەرەبی بە ئینگلیزی ---
@@ -617,18 +626,63 @@ formEl.addEventListener('submit', async (e) => {
             }
         }
 
-        // Save to Database
+// Save to Database
         if(progressSubText) {
             progressMainText.innerText = 'پاشەکەوتکردنی کۆتایی...';
             progressSubText.innerText = 'پەیوەستبوون بە داتابەیسەوە';
         }
 
-        await db.collection("forms").doc(formId).collection("submissions").add({
+        // ١. خەزنکردنی داتاکە و وەرگرتنی ئایدییەکەی (docRef)
+        const docRef = await db.collection("forms").doc(formId).collection("submissions").add({
             data: formData,
             submittedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        localStorage.removeItem(STORAGE_KEY);
+// ٢. ناردنی ڕاستەوخۆ بۆ پەڕەی چاودێری (Audit Log)
+// ٢. ناردنی ڕاستەوخۆ بۆ پەڕەی چاودێری (Audit Log)
+        try {
+            const userEmail = loggedInUserForLog;
+            const formTitleText = titleEl ? titleEl.innerText : 'فۆڕمێکی نەزانراو';
+
+            // -- هەوڵدان بۆ دۆزینەوەی ناو لەناو فۆڕمەکە --
+            let extractedName = null;
+            const allLabels = document.querySelectorAll('.field-wrapper label');
+            
+            // ١. گەڕان بەدوای ئەو خانەیەی کە وشەی 'ناو' ی تێدایە
+            for (let label of allLabels) {
+                if (label.innerText.includes('ناو')) {
+                    const input = label.parentElement.querySelector('input');
+                    if (input && input.value) {
+                        extractedName = input.value;
+                        break; // هەرکە یەکەم 'ناو'ی دۆزیەوە دەوەستێت
+                    }
+                }
+            }
+            
+            // ٢. ئەگەر بە وشەی 'ناو' نەیدۆزیەوە، یەکەم خانەی نوسین (text) وەردەگرێت
+            if (!extractedName) {
+                const firstTextInput = document.querySelector('.field-wrapper input[type="text"]');
+                if (firstTextInput && firstTextInput.value) {
+                    extractedName = firstTextInput.value;
+                }
+            }
+
+            // ناوی کۆتایی کە دەچێتە ئەرشیف
+            const caseDisplayName = extractedName ? extractedName : `وەڵامێکی نوێ بۆ: ${formTitleText}`;
+            // --------------------------------------------
+
+            await db.collection("audit_logs").add({
+                user: userEmail,
+                actionType: 'CREATE',
+                collection: 'submissions', 
+                documentId: docRef.id, 
+                caseName: caseDisplayName, 
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (logError) {
+            console.error("نەتوانرا لە تۆماری چاودێری خەزن بکرێت:", logError);
+        }
+                localStorage.removeItem(STORAGE_KEY);
 
         // ==========================================
         // تەواوبوون بە دیزاینی Premium
