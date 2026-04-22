@@ -59,11 +59,20 @@ body {
     box-shadow: -5px 0 20px rgba(0, 0, 0, 0.1);
 }
 
+/* لە بنەڕەتدا هیچ بۆشاییەک دامەنێ (بۆ مۆبایل و ئایپاد) */
 #page-content-wrapper {
     width: 100%;
-    margin-right: 260px;
-    padding: 30px;
+    margin-right: 0 !important;
+    padding: 15px;
     transition: all 0.3s ease;
+}
+
+/* تەنیا کاتێک شاشەکە زۆر گەورە بوو (لاپتۆپ) بۆشاییەکەی بۆ دروست بکە */
+@media (min-width: 992px) {
+    #page-content-wrapper {
+        margin-right: 260px !important;
+        padding: 30px;
+    }
 }
 
 /* --- SIDEBAR HEADING (DESKTOP) --- */
