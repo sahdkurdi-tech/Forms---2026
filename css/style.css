@@ -754,7 +754,7 @@ body {
     border-color: #fecaca;
 }
 
-@media (max-width: 1199px) {
+@media (max-width: 991px) {
     #wrapper {
         padding-right: 0 !important;
         margin-right: 0 !important;
