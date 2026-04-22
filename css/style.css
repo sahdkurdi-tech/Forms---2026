@@ -155,7 +155,7 @@ body {
 /* =========================================
    3. MOBILE SIDEBAR (تایبەت بە مۆبایل)
    ========================================= */
-@media (max-width: 768px) {
+@media (max-width: 991px) {
 
     #sidebar-wrapper {
         margin-right: 0;
