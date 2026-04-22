@@ -126,12 +126,6 @@ function logout() {
     });
 }
 
-// ============================================================
-// 2. LOAD DATA
-// ============================================================
-// ============================================================
-// 2. LOAD DATA
-// ============================================================
 async function loadInitialData() {
     if(!formId) return;
 
@@ -139,11 +133,29 @@ async function loadInitialData() {
     const spinner = document.getElementById('loadingIndicator');
     const countElement = document.getElementById('displayedCount');
     
-    tableBody.innerHTML = '';
+    // لێرەدا دیزاینە مۆدێرنەکەمان (Skeleton) داناوە لەبری ئەوەی خشتەکە سپی بێت
+    tableBody.innerHTML = `
+        <tr id="initialLoader">
+            <td colspan="100%" class="text-center border-0" style="padding-top: 60px; padding-bottom: 30px;">
+                <div class="d-flex flex-column align-items-center justify-content-center">
+                    <div class="position-relative mb-4">
+                        <div class="spinner-grow text-primary opacity-25" style="width: 4rem; height: 4rem;" role="status"></div>
+                        <div class="spinner-grow text-info position-absolute top-50 start-50 translate-middle" style="width: 2.5rem; height: 2.5rem; animation-delay: 0.3s;" role="status"></div>
+                        <i class="fa-solid fa-cloud-arrow-down text-primary position-absolute top-50 start-50 translate-middle fs-5 z-3"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1" style="font-size: 1.1rem;">خەریکە داتاکان دەهێنرێن...</h5>
+                    <p class="text-muted small">تکایە چەند چرکەیەک چاوەڕێ بە تا خشتەکە پڕ دەبێتەوە</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="placeholder-glow border-0"><td class="py-3 border-0"><span class="placeholder col-4 rounded bg-secondary opacity-25"></span></td><td class="border-0"><span class="placeholder col-7 rounded bg-secondary opacity-25"></span></td><td class="border-0"><span class="placeholder col-5 rounded bg-secondary opacity-25"></span></td><td class="border-0"><span class="placeholder col-8 rounded bg-secondary opacity-25"></span></td><td class="border-0"><span class="placeholder col-4 rounded bg-secondary opacity-25"></span></td></tr>
+        <tr class="placeholder-glow border-0"><td class="py-3 border-0"><span class="placeholder col-6 rounded bg-secondary opacity-25"></span></td><td class="border-0"><span class="placeholder col-5 rounded bg-secondary opacity-25"></span></td><td class="border-0"><span class="placeholder col-8 rounded bg-secondary opacity-25"></span></td><td class="border-0"><span class="placeholder col-6 rounded bg-secondary opacity-25"></span></td><td class="border-0"><span class="placeholder col-5 rounded bg-secondary opacity-25"></span></td></tr>
+        <tr class="placeholder-glow border-0"><td class="py-3 border-0"><span class="placeholder col-5 rounded bg-secondary opacity-25"></span></td><td class="border-0"><span class="placeholder col-8 rounded bg-secondary opacity-25"></span></td><td class="border-0"><span class="placeholder col-6 rounded bg-secondary opacity-25"></span></td><td class="border-0"><span class="placeholder col-4 rounded bg-secondary opacity-25"></span></td><td class="border-0"><span class="placeholder col-7 rounded bg-secondary opacity-25"></span></td></tr>
+    `;
+    
     allSubmissions = [];
     currentRenderIndex = 0;
     
-    // جێبەجێکردنی داواکارییەکەت: نووسینی کاتی تا کۆی گشتی دەژمێردرێت
     if(countElement) countElement.innerText = "چاوەڕێ بکە..."; 
 
     if(spinner) spinner.style.display = 'block';
@@ -160,72 +172,33 @@ async function loadInitialData() {
 
         window.originalFormStructure = formData.fields || [];
 
-        // هەنگاوی یەکەم: هێنانی تەنیا ٥٠ داتای یەکەم بە خێراییەکی زۆر (بۆ ئەوەی خێرا پەڕەکە بکرێتەوە)
-        const firstBatchSnapshot = await db.collection("forms").doc(formId).collection("submissions")
-                                 .orderBy("submittedAt", "desc")
-                                 .limit(50) 
-                                 .get();
+        const fullSnapshot = await db.collection("forms").doc(formId).collection("submissions").get();
 
-        if (firstBatchSnapshot.empty) {
-            tableBody.innerHTML = '<tr><td colspan="100%" class="text-center py-5">هیچ داتایەک نییە</td></tr>';
-            if(countElement) countElement.innerText = "0";
-            if(spinner) spinner.style.display = 'none';
-            return;
-        }
-
-        // پڕکردنەوەی ٥٠ داتاکە لە ناو سیستەم
-        firstBatchSnapshot.forEach(doc => {
+        let tempAllData = [];
+        fullSnapshot.forEach(doc => {
             let data = doc.data();
             data.id = doc.id;
-            allSubmissions.push(data);
+            tempAllData.push(data);
         });
 
-        // پیشاندانی ٥٠ داتاکە یەکسەر بەبێ چاوەڕێکردنی ئەوانی تر
+        tempAllData.sort((a, b) => {
+            const timeA = normalizeDate(a.submittedAt);
+            const timeB = normalizeDate(b.submittedAt);
+            return timeB - timeA; 
+        });
+
+        allSubmissions = tempAllData;
+        totalDatabaseCount = allSubmissions.length;
+        
+        if(countElement) {
+            countElement.innerText = totalDatabaseCount;
+        }
+
+        // خشتەکە خاوێن دەکەینەوە لە دیزاینە کاتییەکە، پاشان داتاکان دادەنێین
+        tableBody.innerHTML = '';
         renderNextBatch();
         
-        // شاردنەوەی لۆدینگ چونکە ٥٠ داتاکە دەرکەوتن
         if(spinner) spinner.style.display = 'none';
-
-        // هەنگاوی دووەم: هێنانی کۆی گشتی داتاکان لە باکگراوند (Asynchronous) بێ ئەوەی خێرایی پەڕەکە کەم بکاتەوە
-        db.collection("forms").doc(formId).collection("submissions").get()
-            .then((fullSnapshot) => {
-                // کاتێک ژماردن تەواو بوو، نوسینەکە دەگۆڕدرێت بۆ ژمارە ڕاستەقینەکە
-                if(countElement) {
-                    countElement.innerText = fullSnapshot.size;
-                    totalDatabaseCount = fullSnapshot.size;
-                }
-
-                // ئامادەکردنی هەموو داتاکان بۆ ئەوەی گەڕان و ئەکسڵ بێ کێشە کار بکەن
-                let tempAllData = [];
-                fullSnapshot.forEach(doc => {
-                    let data = doc.data();
-                    data.id = doc.id;
-                    tempAllData.push(data);
-                });
-
-                // ڕیزبەندکردنی هەموو داتاکان لە نوێوە بۆ کۆن
-                tempAllData.sort((a, b) => {
-                    const timeA = normalizeDate(a.submittedAt);
-                    const timeB = normalizeDate(b.submittedAt);
-                    return timeB - timeA; 
-                });
-
-                allSubmissions = tempAllData;
-
-                // دەرخستنەوەی دوگمەی "پیشاندانی زیاتر" ئەگەر داتای تر مابوو لەدوای ٥٠ دانەکە
-                const loadBtn = document.getElementById('loadMoreBtn');
-                if (currentRenderIndex < allSubmissions.length) {
-                    if(loadBtn) {
-                        loadBtn.classList.remove('d-none');
-                        loadBtn.innerText = `پیشاندانی زیاتر (${allSubmissions.length - currentRenderIndex} ماوە)`;
-                        loadBtn.onclick = renderNextBatch; 
-                    }
-                }
-            })
-            .catch((err) => {
-                console.error("Error fetching background data:", err);
-                if(countElement) countElement.innerText = "نەزانراو";
-            });
 
     } catch (error) {
         console.error("Load Error:", error);
@@ -272,12 +245,18 @@ function renderNextBatch() {
     isRendering = false;
 }
 
+// فەنکشنی نوێ بۆ ڕێکخستنی کات (وادەکات فۆڕمە بێ کاتەکان بێنە لووتکە)
 function normalizeDate(val) {
-    if (!val) return 0;
+    // ئەگەر کاتی نەبوو یان نەخوێندراوە، گەورەترین ژمارەی پێ دەدەین بۆ ئەوەی بێتە لووتکە
+    if (!val) return Number.MAX_SAFE_INTEGER; 
+    
+    if (typeof val.toMillis === 'function') return val.toMillis();
     if (val.seconds) return val.seconds * 1000;
     if (val.getTime) return val.getTime();
-    if (typeof val === 'string') return new Date(val).getTime();
-    return 0;
+    
+    const parsed = new Date(val).getTime();
+    // ئەگەر دەق بوو بەڵام نەبوو بە کات (وەک وشە بوو)، دیسان گەورەترین ژمارەی دەدەینێ
+    return isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
 }
 
 function renderRows(docs, customStartIndex = null) {
@@ -296,7 +275,14 @@ function renderRows(docs, customStartIndex = null) {
 }
 
 function createRowHTML(sub, index) {
-    const date = sub.submittedAt ? new Date(sub.submittedAt.seconds * 1000).toLocaleString('ckb') : '-';
+    // چارەسەری کێشەی ڕێکەوتەکان
+    let displayDate = '-';
+    if (sub.submittedAt) {
+        const timeNum = normalizeDate(sub.submittedAt);
+        if (timeNum > 0) {
+            displayDate = new Date(timeNum).toLocaleString('ckb');
+        }
+    }
     
     let htmlParts = [`<tr id="row_${sub.id}" class="animate-up">`, `<td>`];
 
@@ -318,11 +304,9 @@ function createRowHTML(sub, index) {
         let val = getFieldValue(sub.data, f); 
         if(val === undefined || val === null || val === '') val = '-';
 
-        // تەنیا ئەگەر جۆرەکەی وێنە بوو
         if(f.type === 'photo' || f.type === 'fingerprint') {
             let urls = parseImageUrls(val);
 
-            // ئەگەر بەڕاستی وێنەی تێدابوو پیشانی بدە
             if (urls.length > 0) {
                 const imgSrc = urls[0];
                 const countBadge = urls.length > 1 ? `<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">${urls.length}</span>` : '';
@@ -334,7 +318,6 @@ function createRowHTML(sub, index) {
                     </div>
                 </td>`);
             } else {
-                // ئەگەر وێنەی تێدا نەبوو، تەنیا هێمایەک دانێ
                 htmlParts.push(`<td onclick="openDetailModal('${sub.id}')" class="clickable-row" ${style}>-</td>`);
             }
         } else {
@@ -346,7 +329,8 @@ function createRowHTML(sub, index) {
         colIndex++; 
     });
 
-    htmlParts.push(`<td class="text-muted small" style="direction: ltr;">${date}</td>`);
+    // لێرەدا ناوەکەمان گۆڕی بۆ displayDate
+    htmlParts.push(`<td class="text-muted small" style="direction: ltr;">${displayDate}</td>`);
     
     htmlParts.push(`<td><div class="d-flex gap-2">`);
     if(currentUserPermissions.canEdit) htmlParts.push(`<button onclick="openEditModal('${sub.id}')" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-pen"></i></button>`);
@@ -1255,9 +1239,6 @@ function loadImage(url) {
     });
 }
 
-// ============================================================
-// GLOBAL SEARCH & FILTER LOGIC 
-// ============================================================
 async function filterTable() {
     const searchInputs = document.querySelectorAll('.column-search');
     const countElement = document.getElementById('displayedCount');
@@ -1287,7 +1268,18 @@ async function filterTable() {
     }
 
     if (!isAllDataLoaded) {
-        tbody.innerHTML = `<tr><td colspan="100%" class="text-center py-5"><div class="spinner-border text-primary"></div><br>هێنانی هەموو داتاکان...</td></tr>`;
+        // دیزاینە نوێیەکە بۆ کاتی گەڕان
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="100%" class="text-center border-0 py-5">
+                    <div class="d-flex flex-column align-items-center justify-content-center">
+                        <div class="spinner-border text-primary mb-3" style="width: 2.5rem; height: 2.5rem; border-width: 0.2em;" role="status"></div>
+                        <h6 class="fw-bold text-dark mb-1">ئامادەکردنی داتاکان بۆ گەڕان...</h6>
+                        <span class="text-muted small">تکایە کەمێک چاوەڕێ بە</span>
+                    </div>
+                </td>
+            </tr>
+        `;
         
         await new Promise(r => setTimeout(r, 50)); 
 
